@@ -6,7 +6,20 @@ const api = axios.create({
   timeout: 30000,
 });
 
+// Axios response interceptor for logging responses and catching network errors
+api.interceptors.response.use(
+  (response) => {
+    console.log(`[API Response SUCCESS] ${response.config.method?.toUpperCase()} ${response.config.url}`, response.data);
+    return response;
+  },
+  (error) => {
+    console.warn(`[API Response ERROR] ${error.config?.method?.toUpperCase()} ${error.config?.url}`, error.message);
+    return Promise.reject(error);
+  }
+);
+
 export const fetchSummary = () => api.get('/summary').then(r => r.data);
+
 
 export const fetchAnalytics = () => api.get('/analytics').then(r => r.data);
 

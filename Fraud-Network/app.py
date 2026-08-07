@@ -165,6 +165,7 @@ def advanced():
     return jsonify(merged_features[available_cols].to_dict(orient="records"))
 
 
+@app.route("/investigation/<account_id>")
 @app.route("/ai-investigation/<account_id>")
 def ai_investigation(account_id):
     acc_data = merged_features[merged_features["account_id"] == account_id]
@@ -233,6 +234,7 @@ def next_target():
     return jsonify(targets[["account_id", "nes", "bds"]].to_dict(orient="records"))
 
 
+@app.route("/intervention/<account_id>")
 @app.route("/simulate-intervention/<account_id>")
 def simulate_intervention(account_id):
     acc_data = merged_features[merged_features["account_id"] == account_id]
@@ -252,6 +254,7 @@ def simulate_intervention(account_id):
         "simulated_reduction_percent": round(reduction, 2),
         "message": f"Account {account_id} frozen. Isolated network links. Expected fraud contagion risk reduced by {round(reduction, 1)}%."
     })
+
 
 
 @app.route("/fraud-intelligence")
