@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { 
-  Brain, TrendingUp, TrendingDown, Minus, ShieldAlert, Users, Activity, Cpu, AlertTriangle, 
-  ArrowRight, ShieldCheck, HelpCircle, Eye, RefreshCw, Zap
+  ShieldAlert, TrendingUp, TrendingDown, Minus, Activity, Cpu, AlertTriangle, 
+  ArrowRight, Eye, RefreshCw, Zap, ShieldCheck, DollarSign, Lock, AlertOctagon, HelpCircle
 } from 'lucide-react';
 import useApi from '../hooks/useApi';
 import { fetchSummary, fetchAnalytics, fetchCommunities } from '../services/api';
 import AreaTrendChart from '../components/charts/AreaTrendChart';
-import DonutChart from '../components/charts/DonutChart';
 import BarChart from '../components/charts/BarChart';
 import DataTable from '../components/tables/DataTable';
 import Badge from '../components/common/Badge';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import CommunityDrawer from '../components/graph/CommunityDrawer';
-import { formatNumber, formatPercent } from '../utils/formatters';
+import NodePanel from '../components/graph/NodePanel';
+import { formatNumber, formatPercent, formatCurrency } from '../utils/formatters';
 
 export default function Dashboard() {
   const { data: summary, loading: summaryLoading } = useApi(fetchSummary);
@@ -20,21 +20,21 @@ export default function Dashboard() {
   const { data: communitiesData, loading: communitiesLoading } = useApi(fetchCommunities);
 
   const [selectedCommunity, setSelectedCommunity] = useState(null);
+  const [selectedAccount, setSelectedAccount] = useState(null);
 
   if (summaryLoading || analyticsLoading || communitiesLoading) {
     return <LoadingSpinner size="lg" label="Initializing Enterprise Fraud Intelligence..." />;
   }
 
-  // 8 KPIs with Tooltips
+  // Enterprise KPIs
   const kpis = [
-    { label: 'Total Txns', val: summary?.total_transactions ? formatNumber(summary.total_transactions) : '24.5M', change: '+12.4%', up: true, color: 'text-[#ffffff]', tooltip: 'Total volume of processed network transactions in the last 24h.' },
-    { label: 'Total Accounts', val: summary?.total_accounts ? formatNumber(summary.total_accounts) : '1.2M', change: '+2.1%', up: true, color: 'text-[#ffffff]', tooltip: 'Total active accounts monitored in the graph database.' },
-    { label: 'Fraud Txns', val: summary?.fraud_transactions ? formatNumber(summary.fraud_transactions) : '42,891', change: '+18.2%', up: true, color: 'text-[#ffb4ab]', tooltip: 'Confirmed fraudulent transactions flagged by risk rules & ML.' },
-    { label: 'Fraud Rate', val: summary?.fraud_rate_pct ? formatPercent(summary.fraud_rate_pct) : '0.17%', change: '0.0%', up: null, color: 'text-[#94a3b8]', tooltip: 'Ratio of fraudulent transactions to total volume.' },
-    { label: 'High Risk Accts', val: summary?.high_risk_accounts ? formatNumber(summary.high_risk_accounts) : '8,402', change: '+5.4%', up: true, color: 'text-[#ffb74d]', tooltip: 'Accounts with a risk score above 80/100.' },
-    { label: 'Communities', val: summary?.communities ? formatNumber(summary.communities) : '342', change: '+12', up: true, color: 'text-[#38bdf8]', tooltip: 'Louvain/Leiden detected community clusters.' },
-    { label: 'Cycles Detected', val: summary?.cycles ? formatNumber(summary.cycles) : '47', change: '+3', up: true, color: 'text-[#ffb4ab]', tooltip: 'Circular money-laundering loops discovered.' },
-    { label: 'Avg Risk Score', val: summary?.avg_risk_score ? formatPercent(summary.avg_risk_score) : '14.2%', change: '-0.2%', up: false, color: 'text-[#ffffff]', tooltip: 'Average network-wide account risk index.' },
+    { label: 'Total Transactions', val: summary?.total_transactions ? formatNumber(summary.total_transactions) : '24.5M', change: '+12.4%', up: true, color: 'text-[#ffffff]', status: 'Optimal', tooltip: 'Total volume of processed network transactions in 24h.' },
+    { label: 'Fraud Transactions', val: summary?.fraud_transactions ? formatNumber(summary.fraud_transactions) : '42,891', change: '+18.2%', up: true, color: 'text-[#ef4444]', status: 'Critical', tooltip: 'Confirmed fraudulent transactions flagged by ML.' },
+    { label: 'Communities', val: summary?.communities ? formatNumber(summary.communities) : '342', change: '+12', up: true, color: 'text-[#3b82f6]', status: 'Monitored', tooltip: 'Louvain/Leiden detected community clusters.' },
+    { label: 'High Risk Accounts', val: summary?.high_risk_accounts ? formatNumber(summary.high_risk_accounts) : '87', change: '+5.4%', up: true, color: 'text-[#f59e0b]', status: 'High Alert', tooltip: 'Accounts with a risk score above 80/100.' },
+    { label: 'Money at Risk', val: '$1.42M', change: '+8.1%', up: true, color: 'text-[#ef4444]', status: 'At Risk', tooltip: 'Estimated total capital in active suspicious flows.' },
+    { label: 'Detected Cycles', val: summary?.cycles ? formatNumber(summary.cycles) : '2,613', change: '+14', up: true, color: 'text-[#8b5cf6]', status: 'Laundering', tooltip: 'Circular money-laundering loops discovered.' },
+    { label: 'Avg Risk Score', val: summary?.avg_risk_score ? formatPercent(summary.avg_risk_score) : '14.2%', change: '-0.2%', up: false, color: 'text-[#ffffff]', status: 'Normal', tooltip: 'Average network-wide account risk index.' },
   ];
 
   // Community processing
@@ -42,7 +42,7 @@ export default function Dashboard() {
   (communitiesData || []).forEach(c => {
     const cid = c.community_id || '01';
     if (!communityMap[cid]) {
-      communityMap[cid] = { cid, count: 0, fraud_count: 0, avg_risk: 0 };
+      communityMap[cid] = { cid, count: 0, fraud_count: 0 };
     }
     communityMap[cid].count += 1;
     if (c.risk_score > 70) communityMap[cid].fraud_count += 1;
@@ -61,317 +61,250 @@ export default function Dashboard() {
     };
   });
 
-  // Top Tables Data
   const recentAlertsColumns = [
     { key: 'account_id', label: 'Account ID', className: 'font-mono text-[#ffffff] font-semibold' },
-    { key: 'risk_score', label: 'Risk Score', render: (v) => <span className="px-2 py-0.5 bg-[#ffb4ab]/10 text-[#ffb4ab] border border-[#ffb4ab]/20 rounded-lg font-mono text-xs font-bold">{v || '98.2'}</span> },
+    { key: 'risk_score', label: 'Risk Score', render: (v) => <span className="px-2.5 py-1 bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 rounded-lg font-mono text-xs font-bold">{v || '98.2'}%</span> },
     { key: 'community', label: 'Community', className: 'text-[#94a3b8]' },
     { key: 'reason', label: 'Alert Trigger', className: 'text-[#e2e8f0]' },
-    { key: 'status', label: 'Status', render: (v) => <span className="flex items-center gap-1.5 text-[#ffb4ab] text-xs font-semibold"><span className="w-2 h-2 rounded-full bg-[#ffb4ab] animate-ping" /> {v || 'Pending'}</span> },
-    { key: 'action', label: 'Action', align: 'center', render: () => <button className="px-3 py-1 bg-[#ffffff] text-[#0b1220] rounded-lg hover:bg-[#e2e8f0] transition-colors text-xs font-bold uppercase tracking-wider">Inspect</button> }
+    { key: 'status', label: 'Status', render: (v) => <span className="flex items-center gap-1.5 text-[#ef4444] text-xs font-semibold"><span className="w-2 h-2 rounded-full bg-[#ef4444] animate-ping" /> {v || 'Pending'}</span> },
+    { key: 'action', label: 'Action', align: 'center', render: (_, row) => (
+      <button 
+        onClick={() => setSelectedAccount({ id: row.account_id, riskScore: 98, communityId: 1, customerName: `Account ${row.account_id}` })}
+        className="px-3 py-1 bg-[#ffffff] text-[#0b1220] rounded-lg hover:bg-[#e2e8f0] transition-colors text-xs font-bold uppercase tracking-wider"
+      >
+        Inspect
+      </button>
+    ) }
   ];
 
   const sampleAlerts = [
-    { account_id: 'ACCT-8923-X', risk_score: '98.2', community: 'Cluster #01', reason: 'High FII Velocity Ring', status: 'Pending' },
+    { account_id: 'ACC001245', risk_score: '98.2', community: 'Cluster #01', reason: 'High FII Velocity Ring', status: 'Immediate Action' },
     { account_id: 'ACCT-1102-Y', risk_score: '95.4', community: 'Cluster #04', reason: 'BDS Behavior Anomaly', status: 'Investigating' },
-    { account_id: 'ACCT-9941-Z', risk_score: '88.1', community: 'Cluster #12', reason: 'NES Contagion Risk', status: 'Pending' },
-  ];
-
-  const highRiskAccounts = [
-    { account_id: 'ACC-7710-P', ips: '99.4', fii: '96.2', status: 'Immediate Freeze' },
-    { account_id: 'ACC-3329-Q', ips: '94.1', fii: '91.8', status: 'Flagged' },
-    { account_id: 'ACC-8812-R', ips: '89.7', fii: '85.4', status: 'Review Needed' },
+    { account_id: 'ACCT-9941-Z', risk_score: '88.1', community: 'Cluster #12', reason: 'NES Contagion Risk', status: 'Pending Review' },
   ];
 
   return (
-    <div className="flex flex-col w-full px-6 pb-12 gap-6 max-w-[1700px] mx-auto">
-      {/* 1st Row: 8 KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
+    <div className="flex flex-col w-full px-6 pb-12 gap-6 max-w-[1700px] mx-auto bg-[#0b1220]">
+      
+      {/* 🚀 HERO SECTION: AI Executive Summary & Recommended Directive */}
+      <div className="bg-[#111827] rounded-[20px] p-6 border border-[#3b82f6]/30 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+        <div className="absolute -right-12 -top-12 w-64 h-64 bg-[#3b82f6]/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-[#3b82f6] text-xs font-extrabold uppercase tracking-widest">
+              <Zap size={16} className="animate-pulse" />
+              <span>AI Executive Threat Summary</span>
+            </div>
+            <h1 className="text-2xl font-extrabold text-[#ffffff] tracking-tight">Today's Fraud Intelligence Briefing</h1>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+              <div className="bg-[#1e293b]/50 p-3 rounded-xl border border-[#ffffff]/10">
+                <span className="text-[11px] text-[#94a3b8] block">Detected Communities</span>
+                <span className="text-base font-extrabold text-[#3b82f6]">12 Clusters</span>
+              </div>
+              <div className="bg-[#1e293b]/50 p-3 rounded-xl border border-[#ffffff]/10">
+                <span className="text-[11px] text-[#94a3b8] block">Laundering Cycles</span>
+                <span className="text-base font-extrabold text-[#8b5cf6]">2,613 Rings</span>
+              </div>
+              <div className="bg-[#1e293b]/50 p-3 rounded-xl border border-[#ffffff]/10">
+                <span className="text-[11px] text-[#94a3b8] block">High-Risk Targets</span>
+                <span className="text-base font-extrabold text-[#f59e0b]">87 Accounts</span>
+              </div>
+              <div className="bg-[#1e293b]/50 p-3 rounded-xl border border-[#ffffff]/10">
+                <span className="text-[11px] text-[#94a3b8] block">Capital At Risk</span>
+                <span className="text-base font-extrabold text-[#ef4444]">$1.42M USD</span>
+              </div>
+            </div>
+          </div>
+
+          {/* AI Recommended Directive */}
+          <div className="w-full lg:w-96 bg-[#ef4444]/10 border border-[#ef4444]/30 rounded-2xl p-4 flex flex-col justify-between">
+            <div>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#ef4444] block mb-1">Critical AI Directive</span>
+              <p className="text-sm font-extrabold text-[#ffffff]">Recommended Action:</p>
+              <p className="text-xs text-[#ef4444] font-bold mt-0.5">Freeze Account ACC001245 immediately.</p>
+            </div>
+            <button 
+              onClick={() => setSelectedAccount({ id: 'ACC001245', riskScore: 98.2, communityId: 1, customerName: 'Account ACC001245' })}
+              className="mt-3 w-full py-2 bg-[#ef4444] text-[#ffffff] font-bold text-xs rounded-xl hover:bg-[#dc2626] transition-colors flex items-center justify-center gap-1.5"
+            >
+              <Lock size={14} /> Execute Freeze & Inspect
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 📊 KPI CARDS GRID */}
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
         {kpis.map((kpi, i) => (
           <div 
             key={i} 
-            className="group relative bg-[#111827] rounded-[18px] p-4 flex flex-col justify-between border border-[#ffffff]/10 shadow-xl hover:border-[#ffffff]/30 transition-all duration-300 backdrop-blur-xl"
+            className="bg-[#111827] rounded-[18px] p-4 flex flex-col justify-between border border-[#ffffff]/10 shadow-xl hover:border-[#ffffff]/30 transition-all duration-300 backdrop-blur-xl group"
           >
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider">{kpi.label}</span>
-              <div className="relative cursor-pointer text-[#64748b] hover:text-[#ffffff] transition-colors">
-                <HelpCircle size={13} />
-                {/* Tooltip */}
-                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-48 p-2 bg-[#0b1220] border border-[#ffffff]/20 rounded-xl text-[10px] text-[#e2e8f0] shadow-2xl z-50 pointer-events-none">
-                  {kpi.tooltip}
-                </div>
-              </div>
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#1e293b] text-[#94a3b8] border border-[#ffffff]/10">{kpi.status}</span>
             </div>
 
-            <div className="my-1.5">
+            <div className="my-2">
               <span className={`text-2xl font-extrabold ${kpi.color} tracking-tight`}>{kpi.val}</span>
             </div>
 
-            <div className="flex items-center gap-1 text-[11px] font-mono text-[#94a3b8]">
-              {kpi.up === true && <TrendingUp size={12} className="text-[#38bdf8]" />}
-              {kpi.up === false && <TrendingDown size={12} className="text-[#34d399]" />}
-              {kpi.up === null && <Minus size={12} className="text-[#64748b]" />}
-              <span className={kpi.up ? 'text-[#38bdf8]' : 'text-[#94a3b8]'}>{kpi.change}</span>
+            <div className="flex items-center justify-between text-[11px] font-mono text-[#94a3b8]">
+              <div className="flex items-center gap-1">
+                {kpi.up ? <TrendingUp size={12} className="text-[#3b82f6]" /> : <TrendingDown size={12} className="text-[#10b981]" />}
+                <span className={kpi.up ? 'text-[#3b82f6]' : 'text-[#10b981]'}>{kpi.change}</span>
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* 2nd Row: Community Overview Analytics */}
+      {/* 🖥 MAIN CONTENT SPLIT SCREEN LAYOUT */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Community Size & Fraud Density Chart */}
-        <div className="lg:col-span-8 bg-[#111827] rounded-[18px] p-6 border border-[#ffffff]/10 shadow-xl backdrop-blur-xl flex flex-col">
-          <div className="flex justify-between items-center mb-5">
-            <div>
-              <h3 className="text-base font-bold text-[#ffffff]">Community Size & Fraud Density</h3>
-              <p className="text-xs text-[#94a3b8]">Louvain graph clusters ordered by risk exposure</p>
-            </div>
-            <div className="flex gap-2">
-              <span className="px-3 py-1 rounded-xl bg-[#1e293b] text-xs font-mono text-[#38bdf8] border border-[#ffffff]/10">Louvain Clustering</span>
-            </div>
-          </div>
-          <div className="h-64 w-full">
-            <BarChart 
-              data={analytics?.channel_distribution || [
-                { channel: 'Cluster #01', volume: 1420 },
-                { channel: 'Cluster #02', volume: 980 },
-                { channel: 'Cluster #04', volume: 840 },
-                { channel: 'Cluster #07', volume: 620 },
-                { channel: 'Cluster #12', volume: 450 },
-              ]} 
-              xKey="channel" 
-              bars={[{ key: 'volume', color: '#ffffff', name: 'Accounts' }]} 
-              height={240}
-            />
-          </div>
-        </div>
-
-        {/* Community Risk Breakdown (Right column) */}
-        <div className="lg:col-span-4 bg-[#111827] rounded-[18px] p-6 border border-[#ffffff]/10 shadow-xl backdrop-blur-xl flex flex-col justify-between">
-          <div>
-            <h3 className="text-base font-bold text-[#ffffff] mb-1">Community Risk Distribution</h3>
-            <p className="text-xs text-[#94a3b8] mb-4">Clusters grouped by threat level</p>
-            <div className="space-y-3">
-              <div className="p-3.5 rounded-2xl bg-[#ffb4ab]/10 border border-[#ffb4ab]/20 flex justify-between items-center">
-                <div>
-                  <p className="text-xs font-bold text-[#ffb4ab]">High Risk Clusters</p>
-                  <p className="text-[11px] text-[#94a3b8]">Density &gt; 25%</p>
-                </div>
-                <span className="text-lg font-bold text-[#ffb4ab]">14</span>
-              </div>
-              <div className="p-3.5 rounded-2xl bg-[#ffb74d]/10 border border-[#ffb74d]/20 flex justify-between items-center">
-                <div>
-                  <p className="text-xs font-bold text-[#ffb74d]">Medium Risk Clusters</p>
-                  <p className="text-[11px] text-[#94a3b8]">Density 10% - 25%</p>
-                </div>
-                <span className="text-lg font-bold text-[#ffb74d]">42</span>
-              </div>
-              <div className="p-3.5 rounded-2xl bg-[#38bdf8]/10 border border-[#38bdf8]/20 flex justify-between items-center">
-                <div>
-                  <p className="text-xs font-bold text-[#38bdf8]">Low Risk Clusters</p>
-                  <p className="text-[11px] text-[#94a3b8]">Density &lt; 10%</p>
-                </div>
-                <span className="text-lg font-bold text-[#38bdf8]">286</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3rd Row: Community Cards Grid (6 Cards) */}
-      <div>
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h3 className="text-lg font-bold text-[#ffffff]">Top Dangerous Communities</h3>
-            <p className="text-xs text-[#94a3b8]">Select a community card to launch the Inspector Drawer</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
-          {communityList.map((comm) => (
-            <div 
-              key={comm.cid}
-              className="bg-[#111827] rounded-[18px] p-5 border border-[#ffffff]/10 shadow-xl flex flex-col justify-between hover:border-[#ffffff]/30 transition-all duration-300 group"
-            >
+        {/* Left (70%): Interactive Analytics Charts */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Trend Chart */}
+          <div className="bg-[#111827] rounded-[20px] p-6 border border-[#ffffff]/10 shadow-xl backdrop-blur-xl">
+            <div className="flex justify-between items-center mb-4">
               <div>
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-xs font-bold text-[#ffffff]">Cluster #{comm.cid}</span>
-                  <Badge variant={comm.status === 'High Risk' ? 'danger' : comm.status === 'Medium Risk' ? 'warning' : 'success'}>
-                    {comm.status}
-                  </Badge>
-                </div>
+                <h3 className="text-base font-bold text-[#ffffff]">30-Day Fraud Volume & Risk Trend</h3>
+                <p className="text-xs text-[#94a3b8]">Daily transaction velocity vs confirmed fraudulent instances</p>
+              </div>
+              <span className="px-3 py-1 bg-[#1e293b] text-[#3b82f6] text-xs font-mono font-bold rounded-xl border border-[#ffffff]/10">Realtime API</span>
+            </div>
+            <div className="h-64 w-full">
+              <AreaTrendChart 
+                data={analytics?.trend || [
+                  { day: 'Day 1', fraud_rate: 0.12, volume: 1200 },
+                  { day: 'Day 5', fraud_rate: 0.18, volume: 1500 },
+                  { day: 'Day 10', fraud_rate: 0.24, volume: 1800 },
+                  { day: 'Day 15', fraud_rate: 0.15, volume: 1400 },
+                  { day: 'Day 20', fraud_rate: 0.29, volume: 2100 },
+                  { day: 'Day 25', fraud_rate: 0.35, volume: 2500 },
+                  { day: 'Day 30', fraud_rate: 0.17, volume: 1600 }
+                ]} 
+                xKey="day" 
+                lines={[{ key: 'fraud_rate', color: '#ef4444', name: 'Fraud Rate %' }]} 
+                height={230}
+              />
+            </div>
+          </div>
 
-                <div className="space-y-1.5 mb-4 text-xs">
-                  <div className="flex justify-between text-[#94a3b8]">
-                    <span>Accounts:</span>
-                    <span className="font-bold text-[#ffffff]">{comm.count}</span>
-                  </div>
-                  <div className="flex justify-between text-[#94a3b8]">
-                    <span>Fraud Density:</span>
-                    <span className="font-bold text-[#ffb4ab]">{comm.fraudDensity}%</span>
-                  </div>
-                  <div className="flex justify-between text-[#94a3b8]">
-                    <span>Avg Risk:</span>
-                    <span className="font-bold text-[#ffb74d]">{comm.avg_risk}</span>
-                  </div>
+          {/* Channel Bar Chart */}
+          <div className="bg-[#111827] rounded-[20px] p-6 border border-[#ffffff]/10 shadow-xl backdrop-blur-xl">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-base font-bold text-[#ffffff]">Channel Transaction Velocity</h3>
+                <p className="text-xs text-[#94a3b8]">Volume distribution across Wire, ACH, ATM, and Crypto gateways</p>
+              </div>
+            </div>
+            <div className="h-56 w-full">
+              <BarChart 
+                data={analytics?.channel_distribution || [
+                  { channel: 'Wire Transfer', volume: 1420 },
+                  { channel: 'ACH Transfer', volume: 980 },
+                  { channel: 'Crypto Bridge', volume: 840 },
+                  { channel: 'ATM Cash Out', volume: 620 },
+                  { channel: 'POS Terminal', volume: 450 },
+                ]} 
+                xKey="channel" 
+                bars={[{ key: 'volume', color: '#3b82f6', name: 'Volume' }]} 
+                height={200}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Right (30%): AI Investigation Panel */}
+        <div className="lg:col-span-4 bg-[#111827] rounded-[20px] p-6 border border-[#ffffff]/10 shadow-xl backdrop-blur-xl flex flex-col justify-between space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-[#ffffff]/10 pb-3">
+              <div className="flex items-center gap-2 text-[#ef4444]">
+                <AlertOctagon size={20} />
+                <h3 className="text-base font-extrabold text-[#ffffff]">AI Investigation Panel</h3>
+              </div>
+              <span className="px-2.5 py-1 rounded-xl bg-[#ef4444]/20 text-[#ef4444] font-extrabold text-xs">CRITICAL THREAT</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[#1e293b]/50 border border-[#ffffff]/10 space-y-3">
+              <div>
+                <span className="text-[10px] font-bold text-[#94a3b8] uppercase">Top Target Account</span>
+                <p className="text-lg font-extrabold font-mono text-[#ffffff]">ACC001245</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-[#111827] p-2.5 rounded-xl border border-[#ffffff]/10">
+                  <span className="text-[#94a3b8] block text-[10px]">Risk Score</span>
+                  <span className="text-sm font-extrabold text-[#ef4444]">98.2%</span>
+                </div>
+                <div className="bg-[#111827] p-2.5 rounded-xl border border-[#ffffff]/10">
+                  <span className="text-[#94a3b8] block text-[10px]">FII Score</span>
+                  <span className="text-sm font-extrabold text-[#f59e0b]">96.4%</span>
                 </div>
               </div>
 
-              <button 
-                onClick={() => setSelectedCommunity(comm)}
-                className="w-full py-2 rounded-xl bg-[#ffffff] text-[#0b1220] font-bold text-xs hover:bg-[#e2e8f0] transition-colors flex items-center justify-center gap-1.5"
-              >
-                <Eye size={14} /> View Community
-              </button>
+              <div>
+                <span className="text-[10px] font-bold text-[#94a3b8] uppercase">AI Reasoning</span>
+                <p className="text-xs text-[#e2e8f0] leading-relaxed mt-1">
+                  Circular money laundering pattern detected across 3 community clusters with extreme FII velocity (&gt;96%). Immediate containment recommended.
+                </p>
+              </div>
             </div>
-          ))}
+
+            {/* Additional Innovation Metrics Summary */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-[#ffffff] uppercase tracking-wider">Target Metrics Breakdown</h4>
+              <div className="p-3 rounded-xl bg-[#1e293b]/30 border border-[#ffffff]/10 flex justify-between items-center text-xs">
+                <span className="text-[#94a3b8]">Intervention Priority (IPS)</span>
+                <span className="font-bold font-mono text-[#ef4444]">99.4%</span>
+              </div>
+              <div className="p-3 rounded-xl bg-[#1e293b]/30 border border-[#ffffff]/10 flex justify-between items-center text-xs">
+                <span className="text-[#94a3b8]">Network Exposure (NES)</span>
+                <span className="font-bold font-mono text-[#f59e0b]">94.5%</span>
+              </div>
+              <div className="p-3 rounded-xl bg-[#1e293b]/30 border border-[#ffffff]/10 flex justify-between items-center text-xs">
+                <span className="text-[#94a3b8]">Behavior Drift (BDS)</span>
+                <span className="font-bold font-mono text-[#3b82f6]">92.8%</span>
+              </div>
+            </div>
+          </div>
+
+          <button 
+            onClick={() => setSelectedAccount({ id: 'ACC001245', riskScore: 98.2, communityId: 1, customerName: 'Account ACC001245' })}
+            className="w-full py-3 rounded-xl bg-[#ffffff] text-[#0b1220] font-extrabold text-xs hover:bg-[#e2e8f0] transition-colors flex items-center justify-center gap-2 uppercase tracking-wider"
+          >
+            <Eye size={16} /> Open Full Account Profile
+          </button>
         </div>
       </div>
 
-      {/* 4th Row: Innovation Section — The 4 Core Fraud Metrics */}
-      <div>
-        <div className="mb-4">
-          <h3 className="text-lg font-bold text-[#ffffff]">Fraud Intelligence Innovation Metrics</h3>
-          <p className="text-xs text-[#94a3b8]">Graph-computed AI metrics for automated threat prioritization</p>
+      {/* 📋 MODERN ENTERPRISE ALERTS TABLE */}
+      <div className="bg-[#111827] rounded-[20px] border border-[#ffffff]/10 p-6 shadow-xl backdrop-blur-xl">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-base font-bold text-[#ffffff]">Recent High-Risk Alerts Queue</h3>
+          <span className="text-xs text-[#94a3b8]">Click any row to open the full detail investigation drawer</span>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-          {/* FII Card */}
-          <div className="bg-[#111827] rounded-[18px] p-6 border border-[#ffffff]/10 shadow-xl backdrop-blur-xl flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className="p-2 rounded-xl bg-[#ffffff]/10 text-[#ffffff]">
-                  <Cpu size={18} />
-                </div>
-                <h4 className="text-sm font-bold text-[#ffffff]">Fraud Influence Index (FII)</h4>
-              </div>
-              <p className="text-xs text-[#94a3b8] mb-4">Accounts exerting highest topological control over fraud flows.</p>
-              
-              <div className="space-y-2">
-                <div className="p-2.5 rounded-xl bg-[#1e293b]/40 border border-[#ffffff]/5 flex justify-between items-center text-xs">
-                  <span className="font-mono text-[#ffffff]">ACC-8923-X</span>
-                  <span className="font-bold text-[#ffffff]">FII: 98.4%</span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-[#1e293b]/40 border border-[#ffffff]/5 flex justify-between items-center text-xs">
-                  <span className="font-mono text-[#ffffff]">ACC-1102-Y</span>
-                  <span className="font-bold text-[#ffffff]">FII: 92.1%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* BDS Card */}
-          <div className="bg-[#111827] rounded-[18px] p-6 border border-[#ffffff]/10 shadow-xl backdrop-blur-xl flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className="p-2 rounded-xl bg-[#38bdf8]/10 text-[#38bdf8]">
-                  <Activity size={18} />
-                </div>
-                <h4 className="text-sm font-bold text-[#ffffff]">Behavior Drift Score (BDS)</h4>
-              </div>
-              <p className="text-xs text-[#94a3b8] mb-4">Accounts exhibiting sudden velocity & channel shifts.</p>
-              
-              <div className="space-y-2">
-                <div className="p-2.5 rounded-xl bg-[#1e293b]/40 border border-[#ffffff]/5 flex justify-between items-center text-xs">
-                  <span className="font-mono text-[#ffffff]">ACC-4412-Z</span>
-                  <span className="font-bold text-[#38bdf8]">BDS: 96.8%</span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-[#1e293b]/40 border border-[#ffffff]/5 flex justify-between items-center text-xs">
-                  <span className="font-mono text-[#ffffff]">ACC-0092-W</span>
-                  <span className="font-bold text-[#38bdf8]">BDS: 89.3%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* NES Card */}
-          <div className="bg-[#111827] rounded-[18px] p-6 border border-[#ffffff]/10 shadow-xl backdrop-blur-xl flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className="p-2 rounded-xl bg-[#ffb74d]/10 text-[#ffb74d]">
-                  <AlertTriangle size={18} />
-                </div>
-                <h4 className="text-sm font-bold text-[#ffffff]">Network Exposure (NES)</h4>
-              </div>
-              <p className="text-xs text-[#94a3b8] mb-4">Accounts at immediate risk of contagion from ring nodes.</p>
-              
-              <div className="space-y-2">
-                <div className="p-2.5 rounded-xl bg-[#1e293b]/40 border border-[#ffffff]/5 flex justify-between items-center text-xs">
-                  <span className="font-mono text-[#ffffff]">ACC-7721-M</span>
-                  <span className="font-bold text-[#ffb74d]">NES: 94.5%</span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-[#1e293b]/40 border border-[#ffffff]/5 flex justify-between items-center text-xs">
-                  <span className="font-mono text-[#ffffff]">ACC-3310-N</span>
-                  <span className="font-bold text-[#ffb74d]">NES: 88.0%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* IPS Card */}
-          <div className="bg-[#111827] rounded-[18px] p-6 border border-[#ffffff]/10 shadow-xl backdrop-blur-xl flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className="p-2 rounded-xl bg-[#ffb4ab]/10 text-[#ffb4ab]">
-                  <Zap size={18} />
-                </div>
-                <h4 className="text-sm font-bold text-[#ffffff]">Intervention Priority (IPS)</h4>
-              </div>
-              <p className="text-xs text-[#94a3b8] mb-4">Prime targets for account freeze to maximize containment.</p>
-              
-              <div className="space-y-2">
-                <div className="p-2.5 rounded-xl bg-[#1e293b]/40 border border-[#ffffff]/5 flex justify-between items-center text-xs">
-                  <span className="font-mono text-[#ffffff]">ACC-7710-P</span>
-                  <span className="font-bold text-[#ffb4ab]">IPS: 99.4%</span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-[#1e293b]/40 border border-[#ffffff]/5 flex justify-between items-center text-xs">
-                  <span className="font-mono text-[#ffffff]">ACC-3329-Q</span>
-                  <span className="font-bold text-[#ffb4ab]">IPS: 94.1%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <DataTable columns={recentAlertsColumns} data={sampleAlerts} maxHeight="260px" />
       </div>
 
-      {/* 5th Row: Bottom Investigation Queue Tables */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-[#111827] rounded-[18px] border border-[#ffffff]/10 p-6 shadow-xl backdrop-blur-xl">
-          <h3 className="text-base font-bold text-[#ffffff] mb-4">Recent High-Risk Alerts</h3>
-          <DataTable columns={recentAlertsColumns} data={sampleAlerts} maxHeight="260px" />
-        </div>
-
-        <div className="bg-[#111827] rounded-[18px] border border-[#ffffff]/10 p-6 shadow-xl backdrop-blur-xl">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-bold text-[#ffffff]">Immediate Action Queue (IPS Top Targets)</h3>
-            <span className="flex items-center gap-2 text-xs font-semibold text-[#38bdf8]">
-              <span className="w-2 h-2 rounded-full bg-[#38bdf8] animate-ping" /> Realtime Priority
-            </span>
-          </div>
-          <div className="space-y-3">
-            {highRiskAccounts.map((acc) => (
-              <div key={acc.account_id} className="p-4 rounded-2xl bg-[#1e293b]/40 border border-[#ffffff]/10 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold font-mono text-[#ffffff]">{acc.account_id}</p>
-                  <p className="text-xs text-[#94a3b8]">Priority Score: <span className="font-bold text-[#ffb4ab]">{acc.ips}%</span></p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="px-3 py-1 rounded-xl bg-[#ffb4ab]/10 border border-[#ffb4ab]/20 text-[#ffb4ab] text-xs font-bold">{acc.status}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Community Detail Drawer Overlay */}
+      {/* Drawers */}
       {selectedCommunity && (
         <CommunityDrawer 
           community={selectedCommunity} 
           onClose={() => setSelectedCommunity(null)} 
         />
       )}
+
+      {selectedAccount && (
+        <NodePanel 
+          node={selectedAccount} 
+          onClose={() => setSelectedAccount(null)} 
+        />
+      )}
     </div>
   );
 }
+
 
