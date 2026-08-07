@@ -5,16 +5,14 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/network', label: 'Transaction Network', icon: Network },
-  { path: '/communities', label: 'Community Detection', icon: Users },
-  { path: '/investigation', label: 'Risk Intelligence', icon: Brain },
-  { path: '/high-risk', label: 'High-Risk Accounts', icon: AlertTriangle },
-  { path: '/cycles', label: 'Cycle Detection', icon: RotateCcw },
+  { path: '/', label: 'Executive Dashboard', icon: LayoutDashboard },
+  { path: '/network', label: 'Fraud Network Explorer', icon: Network },
+  { path: '/investigation', label: 'AI Investigation Center', icon: Brain },
   { path: '/intervention', label: 'Intervention Simulator', icon: Activity },
   { path: '/reports', label: 'Reports', icon: FileText },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
+
 
 export default function Sidebar({ collapsed, onToggle }) {
   return (

@@ -9,34 +9,31 @@ import { getRiskTier } from '../../utils/riskHelpers';
 
 try { cytoscape.use(coseBilkent); } catch (e) {}
 
-// Formatter for Rupee transaction amounts e.g., ₹12,450, ₹1,25,000, ₹8,560
-const formatExactRupee = (val) => {
-  if (val == null) return '₹0';
-  return `₹${Math.round(val).toLocaleString('en-IN')}`;
+// Formatter for exact dollar amounts e.g., $500, $2,300, $8,718, $15,000
+const formatExactCurrency = (val) => {
+  if (val == null) return '$0';
+  return `$${Math.round(val).toLocaleString()}`;
 };
 
 // Utility to generate dynamic SVG cards for nodes
 const generateNodeSVG = (node) => {
-  const isFraud = node.riskScore >= 80 || node.isFraud;
+  const isFraud = node.riskScore >= 80;
   const isMedium = node.riskScore >= 50 && node.riskScore < 80;
-  const isLeader = node.fii >= 85 || (node.degree && node.degree > 15);
   
-  // Node Colors per prompt: Normal (#94A3B8), Medium Risk (#F59E0B), Critical Fraud (#EF4444), Community Leader (#8B5CF6)
-  const ringColor = isFraud ? '#EF4444' : isMedium ? '#F59E0B' : isLeader ? '#8B5CF6' : '#94A3B8';
-  const bgColor = '#1E293B'; // #1E293B background
-  const textColor = '#FFFFFF';
-  const subtextColor = '#94A3B8';
+  const ringColor = isFraud ? '#ffb4ab' : isMedium ? '#ffb74d' : '#4cd7f6';
+  const bgColor = '#141313';
+  const textColor = '#ffffff';
+  const subtextColor = '#c4c7c8';
   
   // Clean text to avoid XML errors
-  const safeName = (node.customerName || `Account ${node.id}`).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const safeAcc = (node.accountNumber || node.id || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeName = (node.customerName || 'Unknown').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeAcc = (node.accountNumber || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const typeStr = (node.accountType || 'Account').toUpperCase();
-  const riskVal = `${Math.round(node.riskScore || 0)}%`;
 
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="180" height="76" viewBox="0 0 180 76">
       <!-- Card Background -->
-      <rect x="2" y="2" width="176" height="72" rx="12" fill="${bgColor}" stroke="${ringColor}" stroke-width="2" stroke-opacity="0.95"/>
+      <rect x="2" y="2" width="176" height="72" rx="12" fill="${bgColor}" stroke="${ringColor}" stroke-width="1.5" stroke-opacity="0.6"/>
       
       <!-- Risk Ring -->
       <circle cx="34" cy="38" r="18" fill="none" stroke="${ringColor}" stroke-width="2.5" stroke-dasharray="8 4" />
@@ -49,11 +46,9 @@ const generateNodeSVG = (node) => {
       }
       
       <!-- Text Content -->
-      <text x="64" y="24" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" letter-spacing="1" fill="${subtextColor}">${typeStr}</text>
-      <text x="64" y="42" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="${textColor}">${safeName}</text>
-      <text x="64" y="58" font-family="monospace" font-size="10" fill="${subtextColor}">${safeAcc}</text>
-      <rect x="135" y="10" width="35" height="16" rx="4" fill="${ringColor}" fill-opacity="0.2"/>
-      <text x="152.5" y="21.5" font-family="monospace" font-size="9" font-weight="bold" fill="${ringColor}" text-anchor="middle">${riskVal}</text>
+      <text x="64" y="26" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" letter-spacing="1" fill="${subtextColor}" opacity="0.8">${typeStr}</text>
+      <text x="64" y="44" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="${textColor}">${safeName}</text>
+      <text x="64" y="60" font-family="monospace" font-size="10" fill="${subtextColor}" opacity="0.9">${safeAcc}</text>
     </svg>
   `;
   
@@ -75,7 +70,6 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
 
     const nodes = data.nodes.map(node => {
       const tier = getRiskTier(node.riskScore);
-      const sizeWidth = Math.min(210, Math.max(160, 160 + (node.degree || 0) * 1.5));
       return {
         data: {
           id: node.id,
@@ -91,18 +85,16 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
           ips: node.ips,
           isFraud: node.isFraud,
           svgImage: generateNodeSVG(node),
-          tierColor: tier.color,
-          sizeWidth
+          tierColor: tier.color
         }
       };
     });
 
     const edges = (data.edges || []).map((edge, idx) => {
-      const amountLabel = formatExactRupee(edge.totalAmount);
+      const amountLabel = formatExactCurrency(edge.totalAmount);
       const isCycle = edge.isCycle || edge.alert === 'Circular Transaction';
       const isSuspicious = edge.isFraud || (edge.avgRisk && edge.avgRisk > 75) || edge.totalAmount > 15000 || edge.alert != null;
       const isLaundering = edge.isFraud && (edge.totalAmount > 25000 || (edge.avgRisk && edge.avgRisk > 85));
-      const isCommunityEdge = !isFraud && !isCycle && edge.sourceCommunity === edge.targetCommunity;
 
       return {
         data: {
@@ -115,7 +107,6 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
           isSuspicious,
           isCycle,
           isLaundering,
-          isCommunityEdge,
           amountLabel,
           avgRisk: edge.avgRisk || 70,
           fraudTypes: edge.fraudTypes || []
@@ -131,7 +122,7 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
       selector: 'node',
       style: {
         'shape': 'rectangle',
-        'width': 'data(sizeWidth)',
+        'width': 180,
         'height': 76,
         'background-color': 'transparent',
         'background-image': 'data(svgImage)',
@@ -141,7 +132,7 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
       }
     },
 
-    // 1. Normal Transaction (Solid White, Opacity 0.75)
+    // 1. Normal Transaction (Solid White)
     {
       selector: 'edge',
       style: {
@@ -151,15 +142,15 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
         'target-arrow-shape': 'triangle',
         'curve-style': 'bezier',
         'arrow-scale': 1.3,
-        'opacity': 0.75,
+        'opacity': 0.95,
         'label': 'data(amountLabel)',
         'font-size': '10px',
         'font-weight': '600',
         'color': '#ffffff',
         'text-rotation': 'autorotate',
-        'text-outline-color': '#070b14',
+        'text-outline-color': '#0f172a',
         'text-outline-width': 1,
-        'text-background-color': '#0a0f1c',
+        'text-background-color': '#0f172a',
         'text-background-opacity': 0.95,
         'text-background-padding': '3px 5px',
         'text-background-shape': 'roundrectangle',
@@ -204,7 +195,7 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
       }
     },
 
-    // 4. Money Laundering Chain (Animated Red Flow)
+    // 4. Money Laundering Flow (Bright Red Animated)
     {
       selector: 'edge[?isLaundering]',
       style: {
@@ -222,22 +213,7 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
       }
     },
 
-    // 5. Community Connection (Purple)
-    {
-      selector: 'edge[?isCommunityEdge]',
-      style: {
-        'width': 3,
-        'line-color': '#8b5cf6',
-        'target-arrow-color': '#8b5cf6',
-        'target-arrow-shape': 'triangle',
-        'opacity': 0.9,
-        'color': '#ffffff',
-        'text-background-color': '#2e1065',
-        'z-index': 20,
-      }
-    },
-
-    // Focus & Hover Mode (10% Opacity for Unrelated Elements)
+    // Interactions
     {
       selector: 'edge.connected-highlight',
       style: {
@@ -251,9 +227,15 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
       style: {
         'underlay-color': '#ffffff',
         'underlay-padding': '6px',
-        'underlay-opacity': 1.0,
+        'underlay-opacity': 0.9,
         'underlay-shape': 'roundrectangle',
         'z-index': 100,
+      }
+    },
+    {
+      selector: 'node:active',
+      style: {
+        'overlay-opacity': 0
       }
     },
     {
@@ -268,7 +250,7 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
     },
     {
       selector: 'node.dimmed',
-      style: { 'opacity': 0.10 }
+      style: { 'opacity': 0.12 }
     },
     {
       selector: 'edge.dimmed',
@@ -277,6 +259,8 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
     {
       selector: 'node.hover',
       style: {
+        'width': 188,
+        'height': 80,
         'z-index': 95,
       }
     }
@@ -301,7 +285,7 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
   const handleCyInit = useCallback((cy) => {
     cyRef.current = cy;
     
-    // Focus Mode on Node Selection (tap)
+    // Node selection (tap)
     cy.on('tap', 'node', (evt) => {
       const node = evt.target;
       cy.nodes().removeClass('selected');
@@ -309,7 +293,7 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
       setSelectedNode(node.data());
       setSelectedEdge(null);
       
-      // Spotlight connected edges and nodes (Fade unrelated to 10%)
+      // Spotlight connected edges and nodes
       cy.elements().addClass('dimmed').removeClass('connected-highlight');
       node.removeClass('dimmed');
       const connectedEdges = node.connectedEdges();
@@ -392,8 +376,8 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
     let lastTime = 0;
     
     const animateEdges = (time) => {
-      if (time - lastTime > 35) {
-        offset -= 1.8;
+      if (time - lastTime > 35) { // ~30fps smooth animation
+        offset -= 1.8; // Moving dash offset
         cyclePulse = (cyclePulse + 0.05) % (Math.PI * 2);
         const pulseOpacity = 0.85 + Math.sin(cyclePulse) * 0.15;
 
@@ -446,34 +430,37 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
       matches.removeClass('dimmed').addClass('search-match');
       matches.connectedEdges().removeClass('dimmed').addClass('connected-highlight');
       matches.connectedEdges().connectedNodes().removeClass('dimmed');
-      
-      const firstMatch = matches[0];
-      setSelectedNode(firstMatch.data());
       cy.animate({ fit: { eles: matches, padding: 100 } }, { duration: 600 });
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col relative overflow-hidden h-full min-h-[620px] bg-[#0A0F1C]">
-      {/* Layer 1: Radial Gradient Center #111827 to Edges #070B14 */}
+    <div className="flex-1 flex flex-col relative overflow-hidden h-full min-h-[620px] bg-[#10141C]">
+      {/* Layer 1: Layered Deep Charcoal & Navy Gradients with Soft Center Ambient Glow */}
       <div 
         className="absolute inset-0 pointer-events-none z-0" 
         style={{
-          background: 'radial-gradient(circle at 50% 50%, #111827 0%, #070B14 100%)'
+          background: `
+            radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.05) 0%, rgba(22, 27, 38, 0.5) 60%, rgba(16, 20, 28, 1) 100%),
+            linear-gradient(180deg, #10141C 0%, #161B26 50%, #10141C 100%)
+          `
         }}
       />
 
-      {/* Layer 2: Faint Investigation Grid (rgba 255,255,255,0.025 at 40px) */}
+      {/* Layer 2: Subtle Investigation-Style Grid Pattern */}
       <div 
-        className="absolute inset-0 pointer-events-none z-0 opacity-100"
+        className="absolute inset-0 pointer-events-none z-0 opacity-40"
         style={{
           backgroundImage: `
-            linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px)
+            linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px)
           `,
           backgroundSize: '40px 40px'
         }}
       />
+
+      {/* Layer 3: Outer Vignette Shadow */}
+      <div className="absolute inset-0 pointer-events-none z-0 shadow-[inset_0_0_120px_rgba(0,0,0,0.35)]" />
 
       {/* Search & Layout Control Bar */}
       <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between gap-3 bg-[#111827]/80 backdrop-blur-xl p-3 rounded-2xl border border-[#ffffff]/10 shadow-2xl">
@@ -540,7 +527,7 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
           className="fixed z-50 pointer-events-none bg-[#0f172a]/95 backdrop-blur-xl border border-[#ffffff]/20 rounded-2xl p-4 shadow-2xl text-xs w-64 space-y-2"
         >
           <div className="flex items-center justify-between border-b border-[#ffffff]/10 pb-2">
-            <span className="font-mono font-bold text-[#ffffff]">TXN Link</span>
+            <span className="font-mono font-bold text-[#ffffff]">TXN-10384</span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
               hoveredEdge.isLaundering ? 'bg-[#ff2d55]/20 text-[#ff2d55]' :
               hoveredEdge.isSuspicious ? 'bg-[#ef4444]/20 text-[#ef4444]' :
@@ -553,8 +540,18 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
           <div className="space-y-1 text-[#94a3b8]">
             <div className="flex justify-between"><span className="font-bold">Sender:</span> <span className="font-mono text-[#ffffff]">{hoveredEdge.source}</span></div>
             <div className="flex justify-between"><span className="font-bold">Receiver:</span> <span className="font-mono text-[#ffffff]">{hoveredEdge.target}</span></div>
-            <div className="flex justify-between"><span className="font-bold">Amount:</span> <span className="font-mono text-[#38bdf8] font-bold">{formatExactRupee(hoveredEdge.totalAmount)}</span></div>
+            <div className="flex justify-between"><span className="font-bold">Amount:</span> <span className="font-mono text-[#38bdf8] font-bold">{formatExactCurrency(hoveredEdge.totalAmount)}</span></div>
             <div className="flex justify-between"><span className="font-bold">Risk Score:</span> <span className="font-mono text-[#ffb4ab] font-bold">{hoveredEdge.avgRisk}%</span></div>
+          </div>
+
+          <div className="border-t border-[#ffffff]/10 pt-2 text-[10px] text-[#e2e8f0]">
+            <p className="font-bold text-[#ffb4ab] mb-0.5">Detection Reasons:</p>
+            <ul className="list-disc list-inside space-y-0.5 text-[#94a3b8]">
+              {hoveredEdge.isCycle && <li>Circular transaction loop</li>}
+              {hoveredEdge.totalAmount > 15000 && <li>High velocity threshold exceeded</li>}
+              {hoveredEdge.isFraud && <li>Connected to fraud community</li>}
+              {!hoveredEdge.isFraud && !hoveredEdge.isCycle && <li>Standard verified transfer</li>}
+            </ul>
           </div>
         </div>
       )}
@@ -573,47 +570,29 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
       </div>
 
       {/* Bottom Floating Legend */}
-      <div className="absolute bottom-6 left-6 z-20 bg-[#111827]/90 backdrop-blur-xl rounded-2xl border border-[#ffffff]/10 p-5 shadow-2xl w-80">
-        <h3 className="text-[11px] font-bold uppercase tracking-widest text-[#94a3b8] mb-3">Enterprise Graph Legend</h3>
-        <div className="space-y-2 text-xs">
+      <div className="absolute bottom-6 left-6 z-20 bg-[#111827]/85 backdrop-blur-xl rounded-2xl border border-[#ffffff]/10 p-5 shadow-2xl w-80">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-[#94a3b8] mb-3">Transaction Legend</h3>
+        <div className="space-y-2.5">
           <div className="flex items-center gap-3">
             <div className="w-8 border-b-[2.5px] border-solid border-[#ffffff]" />
-            <span className="font-medium text-[#f8fafc]">Solid White — Normal Txn (₹)</span>
+            <span className="font-medium text-xs text-[#f8fafc]">Solid White — Normal Transaction</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 border-b-[3px] border-dashed border-[#ef4444]" />
-            <span className="font-medium text-[#f8fafc]">Red Dashed — Suspicious Txn</span>
+            <span className="font-medium text-xs text-[#f8fafc]">Red Dashed — Suspicious Transaction</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 border-b-[4px] border-dashed border-[#ff2d55]" />
-            <span className="font-medium text-[#f8fafc]">Animated Red — Money Laundering</span>
+            <span className="font-medium text-xs text-[#f8fafc]">Animated Red — Money Laundering Flow</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 border-b-[3.5px] border-dashed border-[#f97316]" />
-            <span className="font-medium text-[#f8fafc]">Orange Dashed — Circular Loop</span>
+            <span className="font-medium text-xs text-[#f8fafc]">Orange Dashed — Circular Transaction</span>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-8 border-b-[3px] border-solid border-[#8b5cf6]" />
-            <span className="font-medium text-[#f8fafc]">Purple — Community Connection</span>
-          </div>
-          <div className="h-px bg-[#ffffff]/10 my-2" />
-          <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#94a3b8]" />
-              <span className="text-[#94a3b8]">Normal Node</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]" />
-              <span className="text-[#f59e0b]">Medium Risk</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]" />
-              <span className="text-[#ef4444]">Critical Fraud</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#8b5cf6]" />
-              <span className="text-[#8b5cf6]">Leader Node</span>
-            </div>
+          <div className="h-px bg-[#ffffff]/10 my-1" />
+          <div className="flex justify-between items-center text-[11px] text-[#94a3b8]">
+            <span>Arrow: Money Direction</span>
+            <span>Dollar: Amount Label</span>
           </div>
         </div>
       </div>
