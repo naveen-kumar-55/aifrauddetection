@@ -1,48 +1,58 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
-  LayoutDashboard, Network, Brain, Activity, FileText, Settings, ChevronLeft, ChevronRight, Zap
+  LayoutDashboard, Network, Brain, Cpu, Target, Activity, BarChart2, GitMerge, Settings, ChevronLeft, ChevronRight, Zap
 } from 'lucide-react';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/network', label: 'Network Explorer', icon: Network },
+  { path: '/network', label: 'Network', icon: Network },
   { path: '/investigation', label: 'AI Investigation', icon: Brain },
+  { path: '/features', label: 'Feature Engineering', icon: Cpu },
+  { path: '/prediction', label: 'Prediction', icon: Target },
   { path: '/intervention', label: 'Intervention', icon: Activity },
-  { path: '/reports', label: 'Reports', icon: FileText },
+  { path: '/models', label: 'Model Evaluation', icon: BarChart2 },
+  { path: '/pipeline', label: 'Pipeline', icon: GitMerge },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
-
 
 export default function Sidebar({ collapsed, onToggle }) {
   return (
     <aside 
-      className={`fixed top-0 left-0 bottom-0 z-50 bg-[#12151e] border-r border-[#222738] flex flex-col transition-all duration-300 ${
+      className={`fixed top-0 left-0 bottom-0 z-50 bg-[#0f172a] border-r border-[#1e293b] flex flex-col transition-all duration-300 ${
         collapsed ? 'w-16' : 'w-72'
       }`}
     >
       {/* Brand Header */}
-      <div className="p-6 flex items-center gap-3 mb-2 shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-[#00f5d4] text-[#090a0f] flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
-          <Zap size={18} className="fill-[#090a0f] stroke-none" />
+      <div className="p-5 flex items-center gap-3 mb-2 shrink-0 border-b border-[#1e293b]">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#2563eb] to-[#00f5d4] text-[#ffffff] flex items-center justify-center font-bold text-base shrink-0 shadow-lg shadow-[#2563eb]/20">
+          <Zap size={20} className="fill-[#ffffff] stroke-none" />
         </div>
         {!collapsed && (
-          <span className="font-bold text-lg tracking-tight text-[#f8fafc] font-heading">
-            FraudLens AI
-          </span>
+          <div className="flex flex-col">
+            <span className="font-black text-lg tracking-wider text-[#f8fafc] font-heading leading-tight">
+              DATASPHERE
+            </span>
+            <span className="text-[10px] text-[#00f5d4] font-semibold uppercase tracking-widest">
+              AI Fraud Intelligence
+            </span>
+          </div>
         )}
       </div>
 
-
       {/* Navigation Links */}
-      <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             end={item.path === '/'}
             className={({ isActive }) => 
-              `nav-item ${isActive ? 'active' : ''} ${collapsed ? 'justify-center px-0' : ''}`
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                isActive 
+                  ? 'bg-[#2563eb] text-[#ffffff] shadow-md shadow-[#2563eb]/25' 
+                  : 'text-[#94a3b8] hover:text-[#f8fafc] hover:bg-[#1e293b]/60'
+              } ${collapsed ? 'justify-center px-0' : ''}`
             }
             title={collapsed ? item.label : undefined}
           >
@@ -53,10 +63,10 @@ export default function Sidebar({ collapsed, onToggle }) {
       </nav>
 
       {/* Collapse Toggle */}
-      <div className="p-3 border-t border-[#444748]/30 shrink-0">
+      <div className="p-3 border-t border-[#1e293b] shrink-0">
         <button
           onClick={onToggle}
-          className="w-full flex items-center justify-center py-2 text-[#c4c7c8] hover:text-[#ffffff] hover:bg-[#2a2a2a] rounded-lg transition-colors"
+          className="w-full flex items-center justify-center py-2 text-[#94a3b8] hover:text-[#f8fafc] hover:bg-[#1e293b] rounded-xl transition-colors"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>

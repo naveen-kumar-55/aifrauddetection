@@ -3,13 +3,12 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AppLayout from './components/layout/AppLayout';
 import Dashboard from './pages/Dashboard';
 import Network from './pages/Network';
-import Analytics from './pages/Analytics';
 import Investigation from './pages/Investigation';
-import Communities from './pages/Communities';
-import CycleDetection from './pages/CycleDetection';
-import RiskIntelligence from './pages/RiskIntelligence';
-import HighRiskAccounts from './pages/HighRiskAccounts';
-import Reports from './pages/Reports';
+import FeatureEngineering from './pages/FeatureEngineering';
+import Prediction from './pages/Prediction';
+import Intervention from './pages/Intervention';
+import ModelPerformance from './pages/ModelPerformance';
+import Pipeline from './pages/Pipeline';
 import Settings from './pages/Settings';
 
 export default function App() {
@@ -20,18 +19,15 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="network" element={<Network />} />
           <Route path="transaction-network" element={<Network />} />
-          <Route path="analytics" element={<Analytics />} />
           <Route path="investigation" element={<Investigation />} />
-          <Route path="risk-intelligence" element={<RiskIntelligence />} />
-          <Route path="communities" element={<Communities />} />
-          <Route path="community-detection" element={<Communities />} />
-          <Route path="high-risk" element={<HighRiskAccounts />} />
-          <Route path="high-risk-accounts" element={<HighRiskAccounts />} />
-          <Route path="cycles" element={<CycleDetection />} />
-          <Route path="cycle-detection" element={<CycleDetection />} />
-          <Route path="intervention" element={<Investigation />} />
-          <Route path="intervention-simulator" element={<Investigation />} />
-          <Route path="reports" element={<Reports />} />
+          <Route path="ai-investigation" element={<Investigation />} />
+          <Route path="features" element={<FeatureEngineering />} />
+          <Route path="feature-engineering" element={<FeatureEngineering />} />
+          <Route path="prediction" element={<Prediction />} />
+          <Route path="intervention" element={<Intervention />} />
+          <Route path="models" element={<ModelPerformance />} />
+          <Route path="model-evaluation" element={<ModelPerformance />} />
+          <Route path="pipeline" element={<Pipeline />} />
           <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Dashboard />} />
         </Route>
@@ -39,5 +35,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-
-
