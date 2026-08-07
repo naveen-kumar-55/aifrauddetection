@@ -84,82 +84,114 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="flex flex-col w-full px-6 pb-12 gap-6 max-w-[1700px] mx-auto bg-[#0b1220]">
+    <div className="flex flex-col w-full px-6 pb-12 gap-6 max-w-[1700px] mx-auto bg-[#0f172a]">
       
-      {/* 🚀 HERO SECTION: AI Executive Summary & Recommended Directive */}
-      <div className="bg-[#111827] rounded-[20px] p-6 border border-[#3b82f6]/30 shadow-2xl backdrop-blur-xl relative overflow-hidden">
-        <div className="absolute -right-12 -top-12 w-64 h-64 bg-[#3b82f6]/10 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-[#3b82f6] text-xs font-extrabold uppercase tracking-widest">
-              <Zap size={16} className="animate-pulse" />
-              <span>AI Executive Threat Summary</span>
+      {/* 🚀 HERO SECTION: Helpful AI Recommendation Card */}
+      <div className="bg-[#111827] rounded-2xl p-6 border border-[#1e293b] shadow-xl backdrop-blur-xl">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div className="space-y-3 flex-1">
+            <div className="flex items-center gap-2 text-[#2563eb] text-xs font-bold uppercase tracking-wider">
+              <Zap size={15} />
+              <span>AI Recommendation Directive</span>
             </div>
-            <h1 className="text-2xl font-extrabold text-[#ffffff] tracking-tight">Today's Fraud Intelligence Briefing</h1>
             
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-              <div className="bg-[#1e293b]/50 p-3 rounded-xl border border-[#ffffff]/10">
-                <span className="text-[11px] text-[#94a3b8] block">Detected Communities</span>
-                <span className="text-base font-extrabold text-[#3b82f6]">12 Clusters</span>
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-bold text-[#f8fafc]">Freeze Account ACC001245</h1>
+              <span className="px-2.5 py-0.5 rounded-full bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 text-xs font-bold">Action Required</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+              <div className="p-3.5 rounded-xl bg-[#1e293b]/50 border border-[#334155]/50">
+                <span className="text-[11px] text-[#94a3b8] font-medium block mb-1">Reason 1</span>
+                <span className="text-xs font-semibold text-[#f8fafc]">Connected to 8 verified fraud accounts</span>
               </div>
-              <div className="bg-[#1e293b]/50 p-3 rounded-xl border border-[#ffffff]/10">
-                <span className="text-[11px] text-[#94a3b8] block">Laundering Cycles</span>
-                <span className="text-base font-extrabold text-[#8b5cf6]">2,613 Rings</span>
+              <div className="p-3.5 rounded-xl bg-[#1e293b]/50 border border-[#334155]/50">
+                <span className="text-[11px] text-[#94a3b8] font-medium block mb-1">Reason 2</span>
+                <span className="text-xs font-semibold text-[#f8fafc]">Part of 3 laundering cycles</span>
               </div>
-              <div className="bg-[#1e293b]/50 p-3 rounded-xl border border-[#ffffff]/10">
-                <span className="text-[11px] text-[#94a3b8] block">High-Risk Targets</span>
-                <span className="text-base font-extrabold text-[#f59e0b]">87 Accounts</span>
-              </div>
-              <div className="bg-[#1e293b]/50 p-3 rounded-xl border border-[#ffffff]/10">
-                <span className="text-[11px] text-[#94a3b8] block">Capital At Risk</span>
-                <span className="text-base font-extrabold text-[#ef4444]">$1.42M USD</span>
+              <div className="p-3.5 rounded-xl bg-[#1e293b]/50 border border-[#334155]/50">
+                <span className="text-[11px] text-[#94a3b8] font-medium block mb-1">Reason 3</span>
+                <span className="text-xs font-semibold text-[#f8fafc]">Highest Influence Score (FII: 96.4%)</span>
               </div>
             </div>
           </div>
 
-          {/* AI Recommended Directive */}
-          <div className="w-full lg:w-96 bg-[#ef4444]/10 border border-[#ef4444]/30 rounded-2xl p-4 flex flex-col justify-between">
+          {/* Expected Result Box */}
+          <div className="w-full lg:w-80 bg-[#1e293b] border border-[#334155] rounded-xl p-4 flex flex-col justify-between">
             <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#ef4444] block mb-1">Critical AI Directive</span>
-              <p className="text-sm font-extrabold text-[#ffffff]">Recommended Action:</p>
-              <p className="text-xs text-[#ef4444] font-bold mt-0.5">Freeze Account ACC001245 immediately.</p>
+              <span className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-wider block">Expected Result</span>
+              <p className="text-lg font-bold text-[#22c55e] mt-1">Reduce fraud network contagion by 84%</p>
+              <p className="text-xs text-[#94a3b8] mt-1">Freezing ACC001245 isolates 3 downstream laundering clusters.</p>
             </div>
             <button 
               onClick={() => setSelectedAccount({ id: 'ACC001245', riskScore: 98.2, communityId: 1, customerName: 'Account ACC001245' })}
-              className="mt-3 w-full py-2 bg-[#ef4444] text-[#ffffff] font-bold text-xs rounded-xl hover:bg-[#dc2626] transition-colors flex items-center justify-center gap-1.5"
+              className="mt-4 w-full py-2.5 bg-[#2563eb] text-[#ffffff] font-semibold text-xs rounded-xl hover:bg-[#1d4ed8] transition-colors flex items-center justify-center gap-2"
             >
-              <Lock size={14} /> Execute Freeze & Inspect
+              <Lock size={14} /> Execute Freeze Action
             </button>
           </div>
         </div>
       </div>
 
-      {/* 📊 KPI CARDS GRID */}
-      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
-        {kpis.map((kpi, i) => (
-          <div 
-            key={i} 
-            className="bg-[#111827] rounded-[18px] p-4 flex flex-col justify-between border border-[#ffffff]/10 shadow-xl hover:border-[#ffffff]/30 transition-all duration-300 backdrop-blur-xl group"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider">{kpi.label}</span>
-              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#1e293b] text-[#94a3b8] border border-[#ffffff]/10">{kpi.status}</span>
+      {/* 📊 KPI CARDS WITH CONTEXT */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-[#111827] rounded-2xl p-5 border border-[#1e293b] shadow-xl flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-center text-[#94a3b8] text-xs font-medium mb-1">
+              <span>High Risk Accounts</span>
+              <span className="text-[#ef4444] font-bold">+12 today</span>
             </div>
-
-            <div className="my-2">
-              <span className={`text-2xl font-extrabold ${kpi.color} tracking-tight`}>{kpi.val}</span>
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] font-mono text-[#94a3b8]">
-              <div className="flex items-center gap-1">
-                {kpi.up ? <TrendingUp size={12} className="text-[#3b82f6]" /> : <TrendingDown size={12} className="text-[#10b981]" />}
-                <span className={kpi.up ? 'text-[#3b82f6]' : 'text-[#10b981]'}>{kpi.change}</span>
-              </div>
-            </div>
+            <p className="text-3xl font-extrabold text-[#f8fafc]">87</p>
           </div>
-        ))}
+          <div className="mt-3 pt-3 border-t border-[#1e293b] flex justify-between items-center text-[11px] text-[#94a3b8]">
+            <span>12 more than yesterday</span>
+            <span className="text-[#f59e0b] font-semibold">Requires investigation</span>
+          </div>
+        </div>
+
+        <div className="bg-[#111827] rounded-2xl p-5 border border-[#1e293b] shadow-xl flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-center text-[#94a3b8] text-xs font-medium mb-1">
+              <span>Fraud Transactions</span>
+              <span className="text-[#ef4444] font-bold">+18.2%</span>
+            </div>
+            <p className="text-3xl font-extrabold text-[#ef4444]">42,891</p>
+          </div>
+          <div className="mt-3 pt-3 border-t border-[#1e293b] flex justify-between items-center text-[11px] text-[#94a3b8]">
+            <span>vs 30-day baseline</span>
+            <span className="text-[#38bdf8] font-semibold">ML confidence &gt; 94%</span>
+          </div>
+        </div>
+
+        <div className="bg-[#111827] rounded-2xl p-5 border border-[#1e293b] shadow-xl flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-center text-[#94a3b8] text-xs font-medium mb-1">
+              <span>Capital At Risk</span>
+              <span className="text-[#f59e0b] font-bold">+8.1%</span>
+            </div>
+            <p className="text-3xl font-extrabold text-[#f8fafc]">$1.42M</p>
+          </div>
+          <div className="mt-3 pt-3 border-t border-[#1e293b] flex justify-between items-center text-[11px] text-[#94a3b8]">
+            <span>Active in 3 clusters</span>
+            <span className="text-[#ef4444] font-semibold">Immediate freeze advised</span>
+          </div>
+        </div>
+
+        <div className="bg-[#111827] rounded-2xl p-5 border border-[#1e293b] shadow-xl flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-center text-[#94a3b8] text-xs font-medium mb-1">
+              <span>Laundering Cycles</span>
+              <span className="text-[#7c3aed] font-bold">+14 rings</span>
+            </div>
+            <p className="text-3xl font-extrabold text-[#f8fafc]">2,613</p>
+          </div>
+          <div className="mt-3 pt-3 border-t border-[#1e293b] flex justify-between items-center text-[11px] text-[#94a3b8]">
+            <span>Circular flow topology</span>
+            <span className="text-[#22c55e] font-semibold">Tracked by graph AI</span>
+          </div>
+        </div>
       </div>
+
 
       {/* 🖥 MAIN CONTENT SPLIT SCREEN LAYOUT */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
