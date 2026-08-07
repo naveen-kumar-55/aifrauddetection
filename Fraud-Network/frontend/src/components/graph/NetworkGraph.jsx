@@ -377,8 +377,37 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
     });
   }, []);
 
+  // Synchronize elements to Cytoscape instance and execute layout + fit
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy || !elements || elements.length === 0) return;
+
+    const nodeCount = elements.filter(e => !e.data.source).length;
+    const edgeCount = elements.filter(e => e.data.source).length;
+
+    console.log('[NetworkGraph Sync] Updating Cytoscape canvas elements:', elements.length);
+    console.log(`[NetworkGraph Sync] Nodes: ${nodeCount} | Edges: ${edgeCount}`);
+    if (elements.length > 0) {
+      console.log('[NetworkGraph Sample Node]:', elements[0]);
+    }
+
+    try {
+      cy.batch(() => {
+        cy.elements().remove();
+        cy.add(elements);
+      });
+
+      const l = cy.layout(layout);
+      l.run();
+      cy.fit(undefined, 60);
+    } catch (err) {
+      console.error('[NetworkGraph Error] Failed to update Cytoscape elements:', err);
+    }
+  }, [elements, layout]);
+
   // Edge animation loop for suspicious & money laundering cycle edges
   useEffect(() => {
+
     if (!cyRef.current) return;
     
     let animationFrame;
