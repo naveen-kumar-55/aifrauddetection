@@ -1,18 +1,17 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
-  LayoutDashboard, Network, Brain, Cpu, Target, Activity, BarChart2, GitMerge, Settings, ChevronLeft, ChevronRight, Zap
+  LayoutDashboard, Network, Brain, Cpu, TrendingUp, Activity, FileText, Settings, ChevronLeft, ChevronRight, Zap
 } from 'lucide-react';
 
 const navItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/network', label: 'Network', icon: Network },
-  { path: '/investigation', label: 'AI Investigation', icon: Brain },
-  { path: '/features', label: 'Feature Engineering', icon: Cpu },
-  { path: '/prediction', label: 'Prediction', icon: Target },
-  { path: '/intervention', label: 'Intervention', icon: Activity },
-  { path: '/models', label: 'Model Evaluation', icon: BarChart2 },
-  { path: '/pipeline', label: 'Pipeline', icon: GitMerge },
+  { path: '/', label: 'Executive Dashboard', icon: LayoutDashboard },
+  { path: '/network', label: 'Fraud Network Explorer', icon: Network },
+  { path: '/intelligence', label: 'AI Intelligence', icon: Cpu },
+  { path: '/investigation', label: 'Investigation Center', icon: Brain },
+  { path: '/prediction', label: 'Predictions', icon: TrendingUp },
+  { path: '/intervention', label: 'Intervention Simulator', icon: Activity },
+  { path: '/reports', label: 'Reports', icon: FileText },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
