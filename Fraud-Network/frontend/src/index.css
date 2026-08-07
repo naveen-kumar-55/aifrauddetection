@@ -2,26 +2,26 @@
 @import "./styles/animations.css";
 
 @theme {
-  --color-background: #090A0F;
-  --color-surface: #12151E;
-  --color-surface-container-lowest: #05060A;
-  --color-surface-container-low: #12151E;
-  --color-surface-container: #1A1E2E;
-  --color-surface-container-high: #222738;
-  --color-surface-container-highest: #2E354B;
+  --color-background: #141313;
+  --color-surface: #141313;
+  --color-surface-container-lowest: #0e0e0e;
+  --color-surface-container-low: #1c1b1b;
+  --color-surface-container: #201f1f;
+  --color-surface-container-high: #2a2a2a;
+  --color-surface-container-highest: #353434;
 
-  --color-primary: #00F5D4;
-  --color-secondary: #3B82F6;
-  --color-accent: #00F5D4;
+  --color-primary: #FFFFFF;
+  --color-secondary: #4cd7f6;
+  --color-accent: #4cd7f6;
 
-  --color-danger: #FF2A6D;
-  --color-error: #FF2A6D;
-  --color-warning: #FFB800;
-  --color-success: #00F5D4;
+  --color-danger: #ffb4ab;
+  --color-error: #ffb4ab;
+  --color-warning: #ffb74d;
+  --color-success: #81c784;
 
-  --color-on-surface: #F8FAFC;
-  --color-on-surface-variant: #8E9BAE;
-  --color-outline-variant: #222738;
+  --color-on-surface: #e5e2e1;
+  --color-on-surface-variant: #c4c7c8;
+  --color-outline-variant: #444748;
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-heading: 'Inter', system-ui, sans-serif;
@@ -31,8 +31,8 @@
 @layer base {
   body {
     margin: 0;
-    background-color: #090A0F;
-    color: #F8FAFC;
+    background-color: #141313;
+    color: #e5e2e1;
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -47,8 +47,6 @@
     box-sizing: border-box;
   }
 }
-
-
 
 @layer components {
   /* ── Glass & Surface Cards ─────────────────────────────── */

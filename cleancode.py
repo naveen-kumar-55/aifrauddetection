@@ -1,5 +1,5 @@
 import pandas as pd
-df = pd.read_csv(r"C:\Users\rajiv\Downloads\DATASPHERE\fraud_network_transactions.csv")
+df = pd.read_csv(r"C:\Users\rajiv\Downloads\DATASPHERE\Fraud-Network\data\fraud_network_transactions.csv")
 print(f"Original Dataset Shape: {df.shape}")
 df = df.drop_duplicates()
 if "transaction_id" in df.columns:

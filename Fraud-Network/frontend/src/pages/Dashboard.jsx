@@ -1,419 +1,234 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import React from 'react';
 import { 
-  Activity, Users, AlertTriangle, ShieldAlert, DollarSign, Lock, RotateCcw, ShieldCheck, 
-  Zap, ArrowUpRight, ArrowDownRight, CreditCard, Globe, MapPin, Clock, FileText, ChevronRight, Eye
+  Brain, Play, TrendingUp, TrendingDown, Minus, AlertTriangle, Network, Users, ShieldAlert,
+  ArrowRight, Activity, Zap
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, 
-  AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend 
-} from 'recharts';
 import useApi from '../hooks/useApi';
-import { fetchSummary, fetchAnalytics, fetchCommunities, fetchAdvancedFeatures, fetchHighRiskAccounts } from '../services/api';
+import { fetchSummary, fetchAnalytics } from '../services/api';
+import AreaTrendChart from '../components/charts/AreaTrendChart';
+import DonutChart from '../components/charts/DonutChart';
+import BarChart from '../components/charts/BarChart';
 import DataTable from '../components/tables/DataTable';
+import Badge from '../components/common/Badge';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import NodePanel from '../components/graph/NodePanel';
-import { formatNumber, formatPercent } from '../utils/formatters';
+import { formatNumber, formatPercent, formatCurrency } from '../utils/formatters';
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-
-  // Dynamic API Endpoints
   const { data: summary, loading: summaryLoading } = useApi(fetchSummary);
   const { data: analytics, loading: analyticsLoading } = useApi(fetchAnalytics);
-  const { data: communitiesData } = useApi(fetchCommunities);
-  const { data: highRiskData } = useApi(fetchHighRiskAccounts);
-
-  const [selectedAccount, setSelectedAccount] = useState(null);
 
   if (summaryLoading || analyticsLoading) {
-    return <LoadingSpinner size="lg" label="Loading Power BI Fraud Analytics Dashboard..." />;
+    return <LoadingSpinner size="lg" label="Initializing Fraud Network Intelligence..." />;
   }
 
-  // SECTION 1: 8 EXECUTIVE KPI CARDS
+  // 8 KPIs
   const kpis = [
-    { label: 'Total Volume (24h)', val: summary?.total_transactions ? formatNumber(summary.total_transactions) : '24.5M', change: '+12.4%', up: true, icon: Activity, text: 'Total processed volume', tooltip: '24h processed transaction volume' },
-    { label: 'Total Accounts', val: summary?.total_accounts ? formatNumber(summary.total_accounts) : '1.25M', change: '+8.2%', up: true, icon: Users, text: 'Active network account nodes', tooltip: 'Total unique account entities' },
-    { label: 'Fraud Transactions', val: summary?.fraud_transactions ? formatNumber(summary.fraud_transactions) : '42,891', change: '+18.2%', up: true, icon: ShieldAlert, text: 'Confirmed ML fraud cases', tooltip: 'Flagged fraudulent transactions' },
-    { label: 'Fraud Rate', val: summary?.fraud_rate_pct ? formatPercent(summary.fraud_rate_pct) : '0.17%', change: '0.0%', up: null, icon: AlertTriangle, text: 'Fraud ratio to total volume', tooltip: 'Percentage of fraud transactions' },
-    { label: 'High Risk Accounts', val: summary?.high_risk_accounts ? formatNumber(summary.high_risk_accounts) : '87', change: '+5.4%', up: true, icon: Lock, text: 'Risk score > 80/100', tooltip: 'Accounts with high risk score' },
-    { label: 'Communities', val: summary?.communities ? formatNumber(summary.communities) : '342', change: '+12', up: true, icon: Globe, text: 'Louvain community clusters', tooltip: 'Detected community clusters' },
-    { label: 'Money At Risk', val: '$1.42M', change: '+8.1%', up: true, icon: DollarSign, text: 'Active in suspicious flows', tooltip: 'Estimated capital at risk' },
-    { label: 'Average Risk Score', val: summary?.avg_risk_score ? formatPercent(summary.avg_risk_score) : '14.2%', change: '-0.2%', up: false, icon: ShieldCheck, text: 'Network average risk index', tooltip: 'Mean network account risk score' },
+    { label: 'Total Txns', val: summary?.total_transactions ? formatNumber(summary.total_transactions) : '24.5M', change: '+12.4%', up: true, color: 'text-primary' },
+    { label: 'Total Accounts', val: summary?.total_accounts ? formatNumber(summary.total_accounts) : '1.2M', change: '+2.1%', up: true, color: 'text-primary' },
+    { label: 'Fraud Txns', val: summary?.fraud_transactions ? formatNumber(summary.fraud_transactions) : '42,891', change: '+18.2%', up: true, color: 'text-[#ffb4ab]' },
+    { label: 'Fraud Rate', val: summary?.fraud_rate_pct ? formatPercent(summary.fraud_rate_pct) : '0.17%', change: '0.0%', up: null, color: 'text-[#c6c6c7]' },
+    { label: 'High-Risk Accts', val: summary?.high_risk_accounts ? formatNumber(summary.high_risk_accounts) : '8,402', change: '+5.4%', up: true, color: 'text-primary' },
+    { label: 'Communities', val: summary?.communities ? formatNumber(summary.communities) : '342', change: '+12', up: true, color: 'text-[#4cd7f6]' },
+    { label: 'Fraud Rings', val: summary?.cycles ? formatNumber(summary.cycles) : '47', change: '+3', up: true, color: 'text-primary' },
+    { label: 'Avg Risk Score', val: summary?.avg_risk_score ? formatPercent(summary.avg_risk_score) : '12.4', change: '-0.2', up: false, color: 'text-primary' },
   ];
 
-  // SECTION 3: TOP TRANSACTION TYPES / PAYMENT GATEWAYS
-  const txnTypeData = [
-    { type: 'UPI Transfer', volume: 14200, fraud: 340 },
-    { type: 'Wire Transfer', volume: 9800, fraud: 520 },
-    { type: 'Card Gateway', volume: 8400, fraud: 280 },
-    { type: 'Wallet Transit', volume: 6200, fraud: 190 },
-    { type: 'ATM Cash Out', volume: 4500, fraud: 410 },
-    { type: 'RTGS / NEFT', volume: 3800, fraud: 150 },
+  const recentAlertsColumns = [
+    { key: 'account_id', label: 'Account ID', className: 'font-mono text-[#ffffff] font-medium' },
+    { key: 'risk_score', label: 'Risk Score', render: (v) => <span className="px-2 py-0.5 bg-[#ffb4ab]/10 text-[#ffb4ab] rounded font-mono text-xs">{v || '98.2'}</span> },
+    { key: 'community', label: 'Community', className: 'text-[#c4c7c8]' },
+    { key: 'amount', label: 'Amount', align: 'right', className: 'font-mono text-[#e5e2e1]' },
+    { key: 'reason', label: 'Reason', className: 'text-[#c4c7c8]' },
+    { key: 'status', label: 'Status', render: (v) => <span className="flex items-center gap-1 text-[#ffb4ab]"><span className="w-2 h-2 rounded-full bg-[#ffb4ab]" /> {v || 'Pending'}</span> },
+    { key: 'action', label: 'Action', align: 'center', render: () => <button className="px-3 py-1 border border-[#444748] rounded hover:bg-[#353434] transition-colors text-xs uppercase font-semibold">Review</button> }
   ];
 
-  // SECTION 4: FRAUD DISTRIBUTION DONUT DATA
-  const fraudDonutData = [
-    { name: 'Normal Transactions', value: 120800, color: '#10b981' },
-    { name: 'Confirmed Fraud', value: 3218, color: '#ef4444' },
-    { name: 'Pending Investigation', value: 1840, color: '#f59e0b' },
+  const sampleAlerts = [
+    { account_id: 'ACCT-8923-X', risk_score: '98.2', community: 'Ring_Alpha_77', amount: '$45,200.00', reason: 'Velocity Spike (IP Match)', status: 'Pending' },
+    { account_id: 'ACCT-1102-Y', risk_score: '95.4', community: 'Ring_Gamma_02', amount: '$12,050.50', reason: 'Synthetic Identity Match', status: 'Frozen' },
+    { account_id: 'ACCT-9941-Z', risk_score: '82.1', community: 'Isolated', amount: '$3,400.00', reason: 'Geographic Anomaly', status: 'Investigating' },
   ];
 
-  // SECTION 5: RISK LEVEL DISTRIBUTION
-  const riskDistData = [
-    { level: 'Critical (80-100%)', count: 87, fill: '#ef4444' },
-    { level: 'High (60-79%)', count: 240, fill: '#f97316' },
-    { level: 'Medium (40-59%)', count: 680, fill: '#f59e0b' },
-    { level: 'Low (0-39%)', count: 11400, fill: '#10b981' },
+  const liveTxnsColumns = [
+    { key: 'sender_id', label: 'Sender ID', className: 'font-mono' },
+    { key: 'receiver_id', label: 'Receiver ID', className: 'font-mono' },
+    { key: 'amount', label: 'Amount', align: 'right', className: 'font-mono' },
+    { key: 'risk_level', label: 'Risk Level', render: (v) => v === 'Critical' ? <span className="text-[#ffb4ab] font-medium text-xs">Critical</span> : <span className="text-[#4cd7f6] text-xs">Normal</span> },
+    { key: 'timestamp', label: 'Timestamp', className: 'font-mono text-[#c4c7c8]' },
+    { key: 'status', label: 'Status' }
   ];
 
-  // SECTION 6: COMMUNITY ANALYSIS DATA
-  const communityAnalysisData = [
-    { cid: 'Cluster #01', accounts: 142, fraudDensity: 34.2, riskScore: 88 },
-    { cid: 'Cluster #04', accounts: 98, fraudDensity: 28.5, riskScore: 82 },
-    { cid: 'Cluster #12', accounts: 215, fraudDensity: 22.1, riskScore: 76 },
-    { cid: 'Cluster #08', accounts: 85, fraudDensity: 18.4, riskScore: 68 },
-    { cid: 'Cluster #02', accounts: 190, fraudDensity: 14.8, riskScore: 62 },
-  ];
-
-  // SECTION 7: MONEY FLOW ANALYSIS AREA DATA
-  const moneyFlowData = [
-    { day: 'Mon', incoming: 4.2, outgoing: 3.8, suspicious: 1.2 },
-    { day: 'Tue', incoming: 5.1, outgoing: 4.6, suspicious: 1.8 },
-    { day: 'Wed', incoming: 4.8, outgoing: 4.2, suspicious: 1.4 },
-    { day: 'Thu', incoming: 6.2, outgoing: 5.5, suspicious: 2.4 },
-    { day: 'Fri', incoming: 7.0, outgoing: 6.1, suspicious: 2.9 },
-    { day: 'Sat', incoming: 8.4, outgoing: 7.2, suspicious: 3.5 },
-    { day: 'Sun', incoming: 5.8, outgoing: 5.0, suspicious: 1.9 },
-  ];
-
-  // SECTION 8: GEOGRAPHIC FRAUD DISTRIBUTION (TOP LOCATIONS)
-  const geoData = [
-    { location: 'Mumbai Region', volume: 1420, fraudCount: 310 },
-    { location: 'Delhi NCR', volume: 1180, fraudCount: 280 },
-    { location: 'Bengaluru Tech Hub', volume: 950, fraudCount: 190 },
-    { location: 'Hyderabad', volume: 820, fraudCount: 140 },
-    { location: 'Chennai', volume: 640, fraudCount: 95 },
-    { location: 'Kolkata', volume: 520, fraudCount: 88 },
-  ];
-
-  // SECTION 10: HIGH RISK ACCOUNTS TABLE COLUMNS
-  const highRiskColumns = [
-    { key: 'account_id', label: 'Account ID', className: 'font-mono text-[#f8fafc] font-bold' },
-    { key: 'graph_risk_score', label: 'Risk Score', render: (v) => <span className="px-2.5 py-1 bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 rounded-lg font-mono text-xs font-bold">{((v || 0.98) * 100).toFixed(1)}%</span> },
-    { key: 'fii', label: 'FII', render: (v) => <span className="font-mono text-[#00f5d4] font-bold">{v || '98.4%'}</span> },
-    { key: 'nes', label: 'NES', render: (v) => <span className="font-mono text-[#f59e0b] font-bold">{v || '94.5%'}</span> },
-    { key: 'bds', label: 'BDS', render: (v) => <span className="font-mono text-[#2563eb] font-bold">{v || '92.8%'}</span> },
-    { key: 'ips', label: 'IPS', render: (v) => <span className="font-mono text-[#ef4444] font-bold">{v || '99.4%'}</span> },
-    { key: 'fraud_prob', label: 'Fraud Probability', render: (v) => <span className="font-mono font-bold text-[#ef4444]">96.8%</span> },
-    { key: 'action', label: 'Action', align: 'center', render: (_, row) => (
-      <button 
-        onClick={() => navigate('/investigation')}
-        className="px-3 py-1 bg-[#2563eb] text-[#ffffff] rounded-lg hover:bg-[#1d4ed8] transition-colors text-xs font-semibold uppercase tracking-wider"
-      >
-        Investigate
-      </button>
-    ) }
-  ];
-
-  const sampleHighRiskRows = [
-    { account_id: 'ACC001245', graph_risk_score: 0.982, fii: '98.4%', nes: '94.5%', bds: '92.8%', ips: '99.4%' },
-    { account_id: 'ACCT-1102-Y', graph_risk_score: 0.954, fii: '94.1%', nes: '91.2%', bds: '96.8%', ips: '96.2%' },
-    { account_id: 'ACCT-9941-Z', graph_risk_score: 0.881, fii: '89.5%', nes: '94.5%', bds: '88.4%', ips: '92.8%' },
-    { account_id: 'ACCT-7710-P', graph_risk_score: 0.994, fii: '99.1%', nes: '96.4%', bds: '95.0%', ips: '99.8%' },
+  const sampleLiveTxns = [
+    { sender_id: 'USR-4421-A', receiver_id: 'MERCH-882-B', amount: '$45.00', risk_level: 'Low', timestamp: '10:42:01 AM', status: 'Cleared' },
+    { sender_id: 'USR-9921-X', receiver_id: 'ACCT-8923-X', amount: '$12,500.00', risk_level: 'Critical', timestamp: '10:41:58 AM', status: 'Blocked' },
+    { sender_id: 'USR-1102-C', receiver_id: 'MERCH-114-D', amount: '$890.50', risk_level: 'Elevated', timestamp: '10:41:45 AM', status: 'Flagged' },
   ];
 
   return (
-    <div className="flex flex-col w-full px-6 pb-12 gap-8 max-w-[1700px] mx-auto bg-[#0b1220] text-[#f8fafc]">
-      
-      {/* HEADER / BRAND BAR */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pt-2 border-b border-[#1e293b] pb-6">
-        <div>
-          <div className="flex items-center gap-2 text-[#2563eb] text-xs font-bold uppercase tracking-wider mb-1">
-            <Activity size={16} />
-            <span>Power BI & Tableau Enterprise Intelligence</span>
+    <div className="flex flex-col w-full px-6 pb-10 gap-5">
+      {/* Hero Banner Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end w-full relative overflow-hidden rounded-xl bg-[#2a2a2a] p-8 shadow-lg group border border-[#444748]/30">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#4cd7f6]/10 via-transparent to-[#ffb4ab]/10 opacity-50 transition-opacity duration-700 group-hover:opacity-100" />
+        <div className="relative z-10 flex flex-col gap-3 max-w-2xl">
+          <div className="flex items-center gap-3 text-[#4cd7f6]">
+            <Brain className="text-[#4cd7f6]" size={28} />
+            <span className="text-xs font-bold uppercase tracking-widest text-[#4cd7f6]">SYSTEM ACTIVE</span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#f8fafc]">Executive Fraud Analytics Dashboard</h1>
-          <p className="text-xs text-[#94a3b8] mt-1">
-            Comprehensive business intelligence analytics, key operational KPIs, and risk trend metrics
+          <h1 className="text-3xl font-bold text-[#ffffff] tracking-tight font-heading">Fraud Network Intelligence</h1>
+          <p className="text-sm text-[#c4c7c8] leading-relaxed max-w-xl">
+            Real-time fraud detection and transaction graph analytics powered by graph intelligence. Monitoring high-risk vectors across distributed networks.
           </p>
         </div>
-
-        <button 
-          onClick={() => navigate('/network')}
-          className="px-4 py-2.5 rounded-xl bg-[#1e293b] text-[#2563eb] border border-[#334155] font-semibold text-xs hover:bg-[#334155] transition-colors flex items-center gap-2"
-        >
-          Open Fraud Network Explorer <ChevronRight size={14} />
-        </button>
+        <div className="relative z-10 mt-6 md:mt-0 flex gap-4">
+          <button className="px-6 py-3 rounded-lg bg-[#ffffff] text-[#141313] font-semibold hover:bg-[#e2e2e2] transition-all flex items-center gap-2 shadow-md hover:-translate-y-0.5 text-sm">
+            <Play size={18} />
+            Run Simulation
+          </button>
+        </div>
       </div>
 
-      {/* SECTION 1: 8 EXECUTIVE KPI CARDS */}
-      <div>
-        <h2 className="text-sm font-bold text-[#f8fafc] uppercase tracking-wider mb-3">Section 1: Executive KPI Metrics</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
-          {kpis.map((k, i) => (
-            <div key={i} className="bg-[#111827] rounded-2xl p-4 border border-[#1e293b] shadow-xl flex flex-col justify-between" title={k.tooltip}>
+      {/* 8 KPI Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
+        {kpis.map((kpi, i) => (
+          <div key={i} className="bg-[#201f1f] rounded-lg p-4 flex flex-col gap-1.5 border border-[#444748]/30 shadow-sm hover:border-[#4cd7f6]/40 transition-all">
+            <span className="text-[11px] font-semibold text-[#c4c7c8] uppercase tracking-wider">{kpi.label}</span>
+            <span className={`text-xl font-bold ${kpi.color}`}>{kpi.val}</span>
+            <div className="flex items-center gap-1 text-xs font-mono text-[#c4c7c8] mt-0.5">
+              {kpi.up === true && <TrendingUp size={12} className="text-[#4cd7f6]" />}
+              {kpi.up === false && <TrendingDown size={12} className="text-[#81c784]" />}
+              {kpi.up === null && <Minus size={12} className="text-[#c4c7c8]" />}
+              <span>{kpi.change}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Main Charts Row (70% Left + 30% Right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Left Column (70%) */}
+        <div className="lg:col-span-8 flex flex-col gap-5">
+          {/* Interactive Fraud Trend Chart */}
+          <div className="bg-[#201f1f] rounded-xl p-6 border border-[#444748]/30 shadow-sm flex flex-col">
+            <div className="flex justify-between items-center mb-6">
               <div>
-                <div className="flex justify-between items-center text-[#94a3b8] text-xs font-medium mb-2">
-                  <div className="flex items-center gap-1.5">
-                    <k.icon size={14} className="text-[#2563eb]" />
-                    <span className="truncate">{k.label}</span>
+                <h3 className="text-lg font-bold text-[#ffffff]">Interactive Fraud Trend</h3>
+                <p className="text-xs text-[#c4c7c8]">Volume vs Detection Rate over 30 days</p>
+              </div>
+              <div className="flex gap-2">
+                <button className="px-3 py-1 rounded bg-[#353434] text-[#e5e2e1] text-xs font-medium hover:text-[#ffffff]">1D</button>
+                <button className="px-3 py-1 rounded bg-[#4cd7f6]/20 text-[#4cd7f6] text-xs font-semibold">7D</button>
+                <button className="px-3 py-1 rounded bg-[#353434] text-[#e5e2e1] text-xs font-medium hover:text-[#ffffff]">30D</button>
+              </div>
+            </div>
+            <div className="h-72 w-full">
+              <AreaTrendChart 
+                data={analytics?.trend || []} 
+                xKey="day" 
+                lines={[
+                  { key: 'tx_count', color: '#ffffff', name: 'Total Volume' },
+                  { key: 'fraud_count', color: '#4cd7f6', name: 'Fraud Volume' }
+                ]} 
+                height={280}
+              />
+            </div>
+          </div>
+
+          {/* Transaction Velocity by Channel */}
+          <div className="bg-[#201f1f] rounded-xl p-6 border border-[#444748]/30 shadow-sm">
+            <h3 className="text-lg font-bold text-[#ffffff] mb-1">Transaction Velocity</h3>
+            <p className="text-xs text-[#c4c7c8] mb-4">Transactions per minute by access channel</p>
+            <BarChart 
+              data={analytics?.channel_distribution || [
+                { channel: 'Web', volume: 4500 },
+                { channel: 'Mobile', volume: 8200 },
+                { channel: 'ATM', volume: 3100 },
+                { channel: 'Branch', volume: 2400 },
+                { channel: 'POS', volume: 6700 },
+              ]} 
+              xKey="channel" 
+              bars={[{ key: 'volume', color: '#4cd7f6', name: 'Volume' }]} 
+              height={200}
+            />
+          </div>
+        </div>
+
+        {/* Right Column (30%) */}
+        <div className="lg:col-span-4 flex flex-col gap-5">
+          {/* Fraud Distribution Donut */}
+          <div className="bg-[#201f1f] rounded-xl p-6 border border-[#444748]/30 shadow-sm flex flex-col items-center">
+            <div className="w-full text-left mb-2">
+              <h3 className="text-lg font-bold text-[#ffffff]">Fraud Distribution</h3>
+              <p className="text-xs text-[#c4c7c8]">By detection category</p>
+            </div>
+            <DonutChart 
+              data={analytics?.fraud_distribution || [
+                { name: 'Account Takeover', value: 45, color: '#ffb4ab' },
+                { name: 'Synthetic ID', value: 30, color: '#4cd7f6' },
+                { name: 'Card Testing', value: 25, color: '#353434' },
+              ]} 
+              height={220}
+            />
+          </div>
+
+          {/* Risk Level Breakdown List */}
+          <div className="bg-[#201f1f] rounded-xl p-6 border border-[#444748]/30 shadow-sm flex-1">
+            <h3 className="text-lg font-bold text-[#ffffff] mb-1">Risk Level Breakdown</h3>
+            <p className="text-xs text-[#c4c7c8] mb-4">Active nodes by severity</p>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-[#141313] hover:bg-[#353434] transition-colors cursor-pointer group border border-[#444748]/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-1 h-8 bg-[#ffb4ab] rounded-full" />
+                  <div>
+                    <div className="text-sm font-semibold text-[#ffffff] group-hover:text-[#ffb4ab] transition-colors">Critical Risk</div>
+                    <div className="font-mono text-xs text-[#c4c7c8]">Score &gt; 90</div>
                   </div>
                 </div>
-                <p className="text-xl font-bold text-[#f8fafc]">{k.val}</p>
+                <span className="text-lg font-bold text-[#ffffff]">1,204</span>
               </div>
-              <div className="mt-3 pt-2 border-t border-[#1e293b] flex justify-between items-center text-[10px] text-[#94a3b8]">
-                <span>{k.text}</span>
-                <span className={k.up ? 'text-[#2563eb] font-bold' : 'text-[#94a3b8]'}>{k.change}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      {/* SECTION 11: AI EXECUTIVE SUMMARY BRIEFING */}
-      <div className="bg-[#111827] rounded-2xl p-6 border border-[#1e293b] shadow-xl">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-3 flex-1">
-            <div className="flex items-center gap-2 text-[#2563eb] text-xs font-bold uppercase tracking-wider">
-              <Zap size={15} />
-              <span>Section 11: AI Executive Summary Briefing</span>
-            </div>
-            
-            <h2 className="text-xl font-bold text-[#f8fafc]">Today's Threat Analysis Findings:</h2>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-[#141313] hover:bg-[#353434] transition-colors cursor-pointer group border border-[#444748]/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-1 h-8 bg-[#ffb74d] rounded-full" />
+                  <div>
+                    <div className="text-sm font-semibold text-[#ffffff]">High Risk</div>
+                    <div className="font-mono text-xs text-[#c4c7c8]">Score 70-89</div>
+                  </div>
+                </div>
+                <span className="text-lg font-bold text-[#ffffff]">7,198</span>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-1">
-              <div className="p-3.5 rounded-xl bg-[#1e293b]/50 border border-[#334155]/40">
-                <span className="text-[11px] text-[#94a3b8] block">Discovered Fraud Rings</span>
-                <span className="text-base font-bold text-[#2563eb]">12 Communities</span>
-              </div>
-              <div className="p-3.5 rounded-xl bg-[#1e293b]/50 border border-[#334155]/40">
-                <span className="text-[11px] text-[#94a3b8] block">Laundering Cycles</span>
-                <span className="text-base font-bold text-[#f59e0b]">2,613 Loops</span>
-              </div>
-              <div className="p-3.5 rounded-xl bg-[#1e293b]/50 border border-[#334155]/40">
-                <span className="text-[11px] text-[#94a3b8] block">Money At Risk</span>
-                <span className="text-base font-bold text-[#ef4444]">$1.42M USD</span>
-              </div>
-              <div className="p-3.5 rounded-xl bg-[#1e293b]/50 border border-[#334155]/40">
-                <span className="text-[11px] text-[#94a3b8] block">Highest Density</span>
-                <span className="text-base font-bold text-[#f8fafc]">Community #03</span>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-[#141313] hover:bg-[#353434] transition-colors cursor-pointer group border border-[#444748]/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-1 h-8 bg-[#4cd7f6] rounded-full" />
+                  <div>
+                    <div className="text-sm font-semibold text-[#ffffff]">Elevated</div>
+                    <div className="font-mono text-xs text-[#c4c7c8]">Score 40-69</div>
+                  </div>
+                </div>
+                <span className="text-lg font-bold text-[#ffffff]">24,532</span>
               </div>
             </div>
           </div>
-
-          {/* AI Recommended Directive */}
-          <div className="w-full lg:w-80 bg-[#1e293b] border border-[#334155] rounded-xl p-5 flex flex-col justify-between">
-            <div>
-              <span className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider block">Recommended Action Directive</span>
-              <p className="text-base font-bold text-[#ef4444] mt-1">Freeze ACC001245 Immediately</p>
-              <p className="text-xs text-[#94a3b8] mt-1">Isolates 3 downstream money laundering clusters.</p>
-            </div>
-            
-            <button 
-              onClick={() => navigate('/investigation')}
-              className="mt-4 w-full py-2.5 bg-[#2563eb] text-[#ffffff] font-semibold text-xs rounded-xl hover:bg-[#1d4ed8] transition-colors"
-            >
-              Execute Freeze Directive
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* SECTION 2 & 3: FRAUD TREND ANALYTICS & TRANSACTION ANALYTICS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Section 2: Large Line Chart */}
-        <div className="bg-[#111827] rounded-2xl p-6 border border-[#1e293b] shadow-xl">
-          <div className="mb-4">
-            <h3 className="text-base font-bold text-[#f8fafc]">Section 2: 30-Day Fraud Trend Analytics</h3>
-            <p className="text-xs text-[#94a3b8]">Daily fraud count vs normal transaction volume vs risk index</p>
-          </div>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={analytics?.trend || []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="day" stroke="#94a3b8" fontSize={11} />
-                <YAxis stroke="#94a3b8" fontSize={11} />
-                <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#1e293b', borderRadius: '12px', color: '#f8fafc' }} />
-                <Line type="monotone" dataKey="fraud_rate" stroke="#ef4444" strokeWidth={3} name="Fraud Rate %" />
-                <Line type="monotone" dataKey="tx_count" stroke="#2563eb" strokeWidth={2} name="Normal Volume" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+      {/* Tables Row: Recent Fraud Alerts & Live Stream */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="bg-[#201f1f] rounded-xl border border-[#444748]/30 p-6">
+          <h3 className="text-lg font-bold text-[#ffffff] mb-4">Recent Fraud Alerts</h3>
+          <DataTable columns={recentAlertsColumns} data={sampleAlerts} maxHeight="260px" />
         </div>
 
-        {/* Section 3: Bar Chart Top Transaction Types */}
-        <div className="bg-[#111827] rounded-2xl p-6 border border-[#1e293b] shadow-xl">
-          <div className="mb-4">
-            <h3 className="text-base font-bold text-[#f8fafc]">Section 3: Gateway Transaction Analytics</h3>
-            <p className="text-xs text-[#94a3b8]">Top payment gateways: Volume vs Confirmed Fraud Count</p>
+        <div className="bg-[#201f1f] rounded-xl border border-[#444748]/30 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-bold text-[#ffffff]">Live Transactions Stream</h3>
+            <span className="flex items-center gap-2 text-xs font-semibold text-[#4cd7f6]">
+              <span className="w-2 h-2 rounded-full bg-[#4cd7f6] animate-pulse" /> Live Updates
+            </span>
           </div>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={txnTypeData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="type" stroke="#94a3b8" fontSize={11} />
-                <YAxis stroke="#94a3b8" fontSize={11} />
-                <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#1e293b', borderRadius: '12px', color: '#f8fafc' }} />
-                <Bar dataKey="volume" fill="#2563eb" name="Volume" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="fraud" fill="#ef4444" name="Fraud Count" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-      </div>
-
-      {/* SECTION 4, 5 & 6: FRAUD DONUT, RISK LEVELS & COMMUNITY ANALYSIS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Section 4: Donut Chart */}
-        <div className="bg-[#111827] rounded-2xl p-6 border border-[#1e293b] shadow-xl">
-          <div className="mb-4">
-            <h3 className="text-base font-bold text-[#f8fafc]">Section 4: Fraud Distribution</h3>
-            <p className="text-xs text-[#94a3b8]">Normal vs Fraud vs Pending</p>
-          </div>
-          <div className="h-56 w-full flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={fraudDonutData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} dataKey="value">
-                  {fraudDonutData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                </Pie>
-                <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#1e293b', borderRadius: '12px', color: '#f8fafc' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Section 5: Risk Level Distribution */}
-        <div className="bg-[#111827] rounded-2xl p-6 border border-[#1e293b] shadow-xl">
-          <div className="mb-4">
-            <h3 className="text-base font-bold text-[#f8fafc]">Section 5: Risk Level Distribution</h3>
-            <p className="text-xs text-[#94a3b8]">Low, Medium, High, Critical</p>
-          </div>
-          <div className="h-56 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={riskDistData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis type="number" stroke="#94a3b8" fontSize={11} />
-                <YAxis dataKey="level" type="category" stroke="#94a3b8" fontSize={10} width={100} />
-                <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#1e293b', borderRadius: '12px', color: '#f8fafc' }} />
-                <Bar dataKey="count" fill="#ef4444" radius={[0, 4, 4, 0]} name="Account Count" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Section 6: Community Analysis */}
-        <div className="bg-[#111827] rounded-2xl p-6 border border-[#1e293b] shadow-xl">
-          <div className="mb-4">
-            <h3 className="text-base font-bold text-[#f8fafc]">Section 6: Community Cluster Density</h3>
-            <p className="text-xs text-[#94a3b8]">TopLouvain community clusters</p>
-          </div>
-          <div className="h-56 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={communityAnalysisData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="cid" stroke="#94a3b8" fontSize={10} />
-                <YAxis stroke="#94a3b8" fontSize={11} />
-                <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#1e293b', borderRadius: '12px', color: '#f8fafc' }} />
-                <Bar dataKey="fraudDensity" fill="#f59e0b" name="Fraud Density %" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-      </div>
-
-      {/* SECTION 7 & 8: MONEY FLOW & GEOGRAPHIC DISTRIBUTION */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Section 7: Money Flow Area Chart */}
-        <div className="bg-[#111827] rounded-2xl p-6 border border-[#1e293b] shadow-xl">
-          <div className="mb-4">
-            <h3 className="text-base font-bold text-[#f8fafc]">Section 7: Money Flow Analysis ($ Millions)</h3>
-            <p className="text-xs text-[#94a3b8]">Incoming vs Outgoing vs Suspicious Volume</p>
-          </div>
-          <div className="h-60 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={moneyFlowData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="day" stroke="#94a3b8" fontSize={11} />
-                <YAxis stroke="#94a3b8" fontSize={11} />
-                <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#1e293b', borderRadius: '12px', color: '#f8fafc' }} />
-                <Area type="monotone" dataKey="incoming" stroke="#2563eb" fill="#2563eb" fillOpacity={0.1} name="Incoming Volume" />
-                <Area type="monotone" dataKey="suspicious" stroke="#ef4444" fill="#ef4444" fillOpacity={0.2} name="Suspicious Flow" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Section 8: Geographic Fraud Distribution */}
-        <div className="bg-[#111827] rounded-2xl p-6 border border-[#1e293b] shadow-xl">
-          <div className="mb-4">
-            <h3 className="text-base font-bold text-[#f8fafc]">Section 8: Regional Fraud Distribution</h3>
-            <p className="text-xs text-[#94a3b8]">Top regional financial hubs by fraud incidence count</p>
-          </div>
-          <div className="h-60 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={geoData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="location" stroke="#94a3b8" fontSize={10} />
-                <YAxis stroke="#94a3b8" fontSize={11} />
-                <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#1e293b', borderRadius: '12px', color: '#f8fafc' }} />
-                <Bar dataKey="fraudCount" fill="#f97316" name="Fraud Events" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-      </div>
-
-      {/* SECTION 10: TOP HIGH RISK ACCOUNTS TABLE */}
-      <div className="bg-[#111827] rounded-2xl border border-[#1e293b] p-6 shadow-xl">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h3 className="text-base font-bold text-[#f8fafc]">Section 10: Top High Risk Target Accounts Table</h3>
-            <p className="text-xs text-[#94a3b8]">Accounts ranking highest across Graph Risk, FII, NES, BDS, and IPS indices</p>
-          </div>
-        </div>
-        <DataTable columns={highRiskColumns} data={sampleHighRiskRows} maxHeight="280px" />
-      </div>
-
-      {/* SECTION 12: RECENT ALERTS TIMELINE */}
-      <div className="bg-[#111827] rounded-2xl border border-[#1e293b] p-6 shadow-xl">
-        <div className="mb-4">
-          <h3 className="text-base font-bold text-[#f8fafc]">Section 12: Recent Intelligence Alerts Feed</h3>
-          <p className="text-xs text-[#94a3b8]">Live timeline feed of critical, high, medium, and normal risk events</p>
-        </div>
-
-        <div className="space-y-3">
-          <div className="p-3.5 rounded-xl bg-[#1e293b]/50 border border-[#334155]/40 flex justify-between items-center text-xs">
-            <div className="flex items-center gap-3">
-              <span className="px-2.5 py-1 rounded-md bg-[#ef4444]/10 text-[#ef4444] font-bold">CRITICAL</span>
-              <div>
-                <span className="font-mono font-bold text-[#f8fafc]">ACC001245</span>
-                <span className="text-[#94a3b8] ml-2">— High FII Circular Transfer Loop (₹42.5M)</span>
-              </div>
-            </div>
-            <span className="text-[11px] text-[#94a3b8] font-mono">14:32 UTC</span>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-[#1e293b]/50 border border-[#334155]/40 flex justify-between items-center text-xs">
-            <div className="flex items-center gap-3">
-              <span className="px-2.5 py-1 rounded-md bg-[#f59e0b]/10 text-[#f59e0b] font-bold">HIGH</span>
-              <div>
-                <span className="font-mono font-bold text-[#f8fafc]">ACCT-1102-Y</span>
-                <span className="text-[#94a3b8] ml-2">— Rapid BDS Velocity Burst Anomaly</span>
-              </div>
-            </div>
-            <span className="text-[11px] text-[#94a3b8] font-mono">09:15 UTC</span>
-          </div>
+          <DataTable columns={liveTxnsColumns} data={sampleLiveTxns} maxHeight="260px" />
         </div>
       </div>
-
     </div>
   );
 }
