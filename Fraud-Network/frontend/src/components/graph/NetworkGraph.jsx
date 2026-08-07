@@ -435,7 +435,33 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
   };
 
   return (
-    <div className="flex-1 flex flex-col relative overflow-hidden h-full min-h-[620px] bg-[#0b1220] radial-gradient-overlay">
+    <div className="flex-1 flex flex-col relative overflow-hidden h-full min-h-[620px] bg-[#10141C]">
+      {/* Layer 1: Layered Deep Charcoal & Navy Gradients with Soft Center Ambient Glow */}
+      <div 
+        className="absolute inset-0 pointer-events-none z-0" 
+        style={{
+          background: `
+            radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.05) 0%, rgba(22, 27, 38, 0.5) 60%, rgba(16, 20, 28, 1) 100%),
+            linear-gradient(180deg, #10141C 0%, #161B26 50%, #10141C 100%)
+          `
+        }}
+      />
+
+      {/* Layer 2: Subtle Investigation-Style Grid Pattern */}
+      <div 
+        className="absolute inset-0 pointer-events-none z-0 opacity-40"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px)
+          `,
+          backgroundSize: '40px 40px'
+        }}
+      />
+
+      {/* Layer 3: Outer Vignette Shadow */}
+      <div className="absolute inset-0 pointer-events-none z-0 shadow-[inset_0_0_120px_rgba(0,0,0,0.35)]" />
+
       {/* Search & Layout Control Bar */}
       <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between gap-3 bg-[#111827]/80 backdrop-blur-xl p-3 rounded-2xl border border-[#ffffff]/10 shadow-2xl">
         <form onSubmit={handleSearch} className="relative flex-1 max-w-md">

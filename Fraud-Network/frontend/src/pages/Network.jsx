@@ -25,7 +25,7 @@ export default function Network() {
   if (loading) return <LoadingSpinner size="lg" label="Building Fraud Network Topology..." />;
 
   return (
-    <div className="h-[calc(100vh-100px)] flex flex-col rounded-2xl overflow-hidden glass-card">
+    <div className="h-[calc(100vh-100px)] flex flex-col rounded-2xl overflow-hidden bg-[#10141C] border border-[#ffffff]/10 shadow-2xl">
       <NetworkGraph
         data={data}
         nodeLimit={nodeLimit}
@@ -34,4 +34,5 @@ export default function Network() {
       />
     </div>
   );
+
 }
