@@ -4,11 +4,12 @@ import coseBilkent from 'cytoscape-cose-bilkent';
 import cytoscape from 'cytoscape';
 import { ZoomIn, ZoomOut, Maximize, Circle, Layers, RefreshCw, Search } from 'lucide-react';
 import NodePanel from './NodePanel';
+import EdgeDrawer from './EdgeDrawer';
 import { getRiskTier } from '../../utils/riskHelpers';
 
 try { cytoscape.use(coseBilkent); } catch (e) {}
 
-// Formatter for exact dollar amounts e.g., $500, $2,300, $18,400
+// Formatter for exact dollar amounts e.g., $500, $2,300, $8,718, $15,000
 const formatExactCurrency = (val) => {
   if (val == null) return '$0';
   return `$${Math.round(val).toLocaleString()}`;
@@ -56,6 +57,9 @@ const generateNodeSVG = (node) => {
 
 export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange, onRefresh }) {
   const [selectedNode, setSelectedNode] = useState(null);
+  const [selectedEdge, setSelectedEdge] = useState(null);
+  const [hoveredEdge, setHoveredEdge] = useState(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [searchQuery, setSearchQuery] = useState('');
   const [layoutName, setLayoutName] = useState('cose-bilkent');
 
@@ -88,16 +92,24 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
 
     const edges = (data.edges || []).map((edge, idx) => {
       const amountLabel = formatExactCurrency(edge.totalAmount);
-      const isCycle = edge.isCycle || (edge.isFraud && edge.totalAmount > 10000);
+      const isCycle = edge.isCycle || edge.alert === 'Circular Transaction';
+      const isSuspicious = edge.isFraud || (edge.avgRisk && edge.avgRisk > 75) || edge.totalAmount > 15000 || edge.alert != null;
+      const isLaundering = edge.isFraud && (edge.totalAmount > 25000 || (edge.avgRisk && edge.avgRisk > 85));
+
       return {
         data: {
           id: `e-${edge.source}-${edge.target}-${idx}`,
           source: edge.source,
           target: edge.target,
           totalAmount: edge.totalAmount,
+          txCount: edge.txCount || 1,
           isFraud: edge.isFraud,
-          isCycle: isCycle,
+          isSuspicious,
+          isCycle,
+          isLaundering,
           amountLabel,
+          avgRisk: edge.avgRisk || 70,
+          fraudTypes: edge.fraudTypes || []
         }
       };
     });
@@ -119,12 +131,14 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
         'z-index': 50,
       }
     },
+
+    // 1. Normal Transaction (Solid White)
     {
       selector: 'edge',
       style: {
         'width': 2.5,
-        'line-color': '#e2e8f0',
-        'target-arrow-color': '#e2e8f0',
+        'line-color': '#ffffff',
+        'target-arrow-color': '#ffffff',
         'target-arrow-shape': 'triangle',
         'curve-style': 'bezier',
         'arrow-scale': 1.3,
@@ -133,19 +147,21 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
         'font-size': '10px',
         'font-weight': '600',
         'color': '#ffffff',
-        'text-rotation': 0,
+        'text-rotation': 'autorotate',
         'text-outline-color': '#0f172a',
         'text-outline-width': 1,
         'text-background-color': '#0f172a',
         'text-background-opacity': 0.95,
-        'text-background-padding': '4px 6px',
+        'text-background-padding': '3px 5px',
         'text-background-shape': 'roundrectangle',
         'text-margin-y': -8,
         'z-index': 10,
       }
     },
+
+    // 2. Suspicious Transaction (Red Dashed)
     {
-      selector: 'edge[?isFraud]',
+      selector: 'edge[?isSuspicious]',
       style: {
         'width': 3,
         'line-color': '#ef4444',
@@ -160,22 +176,44 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
         'z-index': 25,
       }
     },
+
+    // 3. Circular Transaction (Orange Dashed)
     {
       selector: 'edge[?isCycle]',
       style: {
-        'width': 4,
+        'width': 3.5,
         'line-color': '#f97316',
         'line-style': 'dashed',
         'line-dash-pattern': [10, 4],
         'target-arrow-color': '#f97316',
         'target-arrow-shape': 'triangle',
-        'arrow-scale': 1.6,
+        'arrow-scale': 1.5,
         'opacity': 1.0,
         'color': '#ffffff',
         'text-background-color': '#431407',
+        'z-index': 30,
+      }
+    },
+
+    // 4. Money Laundering Flow (Bright Red Animated)
+    {
+      selector: 'edge[?isLaundering]',
+      style: {
+        'width': 4,
+        'line-color': '#ff2d55',
+        'line-style': 'dashed',
+        'line-dash-pattern': [12, 4],
+        'target-arrow-color': '#ff2d55',
+        'target-arrow-shape': 'triangle',
+        'arrow-scale': 1.6,
+        'opacity': 1.0,
+        'color': '#ffffff',
+        'text-background-color': '#881337',
         'z-index': 35,
       }
     },
+
+    // Interactions
     {
       selector: 'edge.connected-highlight',
       style: {
@@ -253,6 +291,7 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
       cy.nodes().removeClass('selected');
       node.addClass('selected');
       setSelectedNode(node.data());
+      setSelectedEdge(null);
       
       // Spotlight connected edges and nodes
       cy.elements().addClass('dimmed').removeClass('connected-highlight');
@@ -262,22 +301,29 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
       connectedNodes.removeClass('dimmed');
       connectedEdges.removeClass('dimmed').addClass('connected-highlight');
     });
+
+    // Edge selection (tap edge)
+    cy.on('tap', 'edge', (evt) => {
+      const edge = evt.target;
+      setSelectedEdge(edge.data());
+      setSelectedNode(null);
+    });
     
     // Canvas tap (reset)
     cy.on('tap', (evt) => {
       if (evt.target === cy) {
         setSelectedNode(null);
+        setSelectedEdge(null);
         cy.elements().removeClass('dimmed search-match hover selected connected-highlight');
       }
     });
 
-    // Hover effect
+    // Node Hover effect
     cy.on('mouseover', 'node', (evt) => {
       const node = evt.target;
       node.addClass('hover');
       cy.container().style.cursor = 'pointer';
 
-      // Highlight on hover if no node is currently selected
       if (!cy.nodes('.selected').length) {
         const connectedEdges = node.connectedEdges();
         const connectedNodes = connectedEdges.connectedNodes();
@@ -294,10 +340,29 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
       node.removeClass('hover');
       cy.container().style.cursor = 'default';
 
-      // Reset hover highlights if no node is selected
       if (!cy.nodes('.selected').length) {
         cy.elements().removeClass('dimmed connected-highlight');
       }
+    });
+
+    // Edge Hover effect & Tooltip
+    cy.on('mouseover', 'edge', (evt) => {
+      const edge = evt.target;
+      edge.addClass('connected-highlight');
+      setHoveredEdge(edge.data());
+      cy.container().style.cursor = 'pointer';
+    });
+
+    cy.on('mousemove', 'edge', (evt) => {
+      const renderedPosition = evt.renderedPosition;
+      setTooltipPos({ x: renderedPosition.x, y: renderedPosition.y });
+    });
+
+    cy.on('mouseout', 'edge', (evt) => {
+      const edge = evt.target;
+      edge.removeClass('connected-highlight');
+      setHoveredEdge(null);
+      cy.container().style.cursor = 'default';
     });
   }, []);
 
@@ -318,15 +383,20 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
 
         const cy = cyRef.current;
         if (cy) {
-          const fraudEdges = cy.edges('[?isFraud]');
-          if (fraudEdges.length > 0) {
-            fraudEdges.style('line-dash-offset', offset);
+          const suspEdges = cy.edges('[?isSuspicious]');
+          if (suspEdges.length > 0) {
+            suspEdges.style('line-dash-offset', offset);
           }
 
           const cycleEdges = cy.edges('[?isCycle]');
           if (cycleEdges.length > 0) {
             cycleEdges.style('line-dash-offset', offset * 1.4);
-            cycleEdges.style('opacity', pulseOpacity);
+          }
+
+          const launderingEdges = cy.edges('[?isLaundering]');
+          if (launderingEdges.length > 0) {
+            launderingEdges.style('line-dash-offset', offset * 1.8);
+            launderingEdges.style('opacity', pulseOpacity);
           }
         }
         lastTime = time;
@@ -424,6 +494,42 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
         </div>
       </div>
 
+      {/* Floating Edge Hover Tooltip */}
+      {hoveredEdge && (
+        <div 
+          style={{ left: tooltipPos.x + 15, top: tooltipPos.y - 15 }}
+          className="fixed z-50 pointer-events-none bg-[#0f172a]/95 backdrop-blur-xl border border-[#ffffff]/20 rounded-2xl p-4 shadow-2xl text-xs w-64 space-y-2"
+        >
+          <div className="flex items-center justify-between border-b border-[#ffffff]/10 pb-2">
+            <span className="font-mono font-bold text-[#ffffff]">TXN-10384</span>
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+              hoveredEdge.isLaundering ? 'bg-[#ff2d55]/20 text-[#ff2d55]' :
+              hoveredEdge.isSuspicious ? 'bg-[#ef4444]/20 text-[#ef4444]' :
+              hoveredEdge.isCycle ? 'bg-[#f97316]/20 text-[#f97316]' : 'bg-[#38bdf8]/20 text-[#38bdf8]'
+            }`}>
+              {hoveredEdge.isLaundering ? 'Laundering Flow' : hoveredEdge.isSuspicious ? 'Suspicious' : hoveredEdge.isCycle ? 'Circular' : 'Normal'}
+            </span>
+          </div>
+
+          <div className="space-y-1 text-[#94a3b8]">
+            <div className="flex justify-between"><span className="font-bold">Sender:</span> <span className="font-mono text-[#ffffff]">{hoveredEdge.source}</span></div>
+            <div className="flex justify-between"><span className="font-bold">Receiver:</span> <span className="font-mono text-[#ffffff]">{hoveredEdge.target}</span></div>
+            <div className="flex justify-between"><span className="font-bold">Amount:</span> <span className="font-mono text-[#38bdf8] font-bold">{formatExactCurrency(hoveredEdge.totalAmount)}</span></div>
+            <div className="flex justify-between"><span className="font-bold">Risk Score:</span> <span className="font-mono text-[#ffb4ab] font-bold">{hoveredEdge.avgRisk}%</span></div>
+          </div>
+
+          <div className="border-t border-[#ffffff]/10 pt-2 text-[10px] text-[#e2e8f0]">
+            <p className="font-bold text-[#ffb4ab] mb-0.5">Detection Reasons:</p>
+            <ul className="list-disc list-inside space-y-0.5 text-[#94a3b8]">
+              {hoveredEdge.isCycle && <li>Circular transaction loop</li>}
+              {hoveredEdge.totalAmount > 15000 && <li>High velocity threshold exceeded</li>}
+              {hoveredEdge.isFraud && <li>Connected to fraud community</li>}
+              {!hoveredEdge.isFraud && !hoveredEdge.isCycle && <li>Standard verified transfer</li>}
+            </ul>
+          </div>
+        </div>
+      )}
+
       {/* Canvas */}
       <div className="flex-1 relative">
         <CytoscapeComponent
@@ -438,33 +544,29 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
       </div>
 
       {/* Bottom Floating Legend */}
-      <div className="absolute bottom-6 left-6 z-20 bg-[#111827]/85 backdrop-blur-xl rounded-2xl border border-[#ffffff]/10 p-5 shadow-2xl w-72">
-        <h3 className="text-[11px] font-bold uppercase tracking-widest text-[#94a3b8] mb-4">Edge & Node Legend</h3>
-        <div className="space-y-3">
+      <div className="absolute bottom-6 left-6 z-20 bg-[#111827]/85 backdrop-blur-xl rounded-2xl border border-[#ffffff]/10 p-5 shadow-2xl w-80">
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-[#94a3b8] mb-3">Transaction Legend</h3>
+        <div className="space-y-2.5">
           <div className="flex items-center gap-3">
-            <div className="w-8 border-b-[2.5px] border-solid border-[#e2e8f0]" />
-            <span className="font-medium text-xs text-[#f8fafc]">Normal Txn ($2.5px solid white)</span>
+            <div className="w-8 border-b-[2.5px] border-solid border-[#ffffff]" />
+            <span className="font-medium text-xs text-[#f8fafc]">Solid White — Normal Transaction</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 border-b-[3px] border-dashed border-[#ef4444]" />
-            <span className="font-medium text-xs text-[#f8fafc]">Suspicious Flow (Animated Red)</span>
+            <span className="font-medium text-xs text-[#f8fafc]">Red Dashed — Suspicious Transaction</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-8 border-b-[4px] border-dashed border-[#f97316]" />
-            <span className="font-medium text-xs text-[#f8fafc]">Money Laundering Cycle (Pulse)</span>
-          </div>
-          <div className="h-px bg-[#ffffff]/10 my-2" />
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-[#ffb4ab] ring-4 ring-[#ffb4ab]/20" />
-            <span className="font-medium text-xs text-[#f8fafc]">Critical Risk Account</span>
+            <div className="w-8 border-b-[4px] border-dashed border-[#ff2d55]" />
+            <span className="font-medium text-xs text-[#f8fafc]">Animated Red — Money Laundering Flow</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-[#ffb74d] ring-4 ring-[#ffb74d]/20" />
-            <span className="font-medium text-xs text-[#f8fafc]">Elevated Risk Account</span>
+            <div className="w-8 border-b-[3.5px] border-dashed border-[#f97316]" />
+            <span className="font-medium text-xs text-[#f8fafc]">Orange Dashed — Circular Transaction</span>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-[#4cd7f6] ring-4 ring-[#4cd7f6]/20" />
-            <span className="font-medium text-xs text-[#f8fafc]">Normal Account</span>
+          <div className="h-px bg-[#ffffff]/10 my-1" />
+          <div className="flex justify-between items-center text-[11px] text-[#94a3b8]">
+            <span>Arrow: Money Direction</span>
+            <span>Dollar: Amount Label</span>
           </div>
         </div>
       </div>
@@ -473,7 +575,10 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
         setSelectedNode(null);
         if (cyRef.current) cyRef.current.elements().removeClass('dimmed search-match hover selected connected-highlight');
       }} />}
+
+      {selectedEdge && <EdgeDrawer edgeData={selectedEdge} onClose={() => setSelectedEdge(null)} />}
     </div>
   );
 }
+
 
