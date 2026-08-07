@@ -2,26 +2,26 @@
 @import "./styles/animations.css";
 
 @theme {
-  --color-background: #0F172A;
-  --color-surface: #111827;
-  --color-surface-container-lowest: #0B1220;
-  --color-surface-container-low: #111827;
-  --color-surface-container: #1E293B;
-  --color-surface-container-high: #334155;
-  --color-surface-container-highest: #475569;
+  --color-background: #090A0F;
+  --color-surface: #12151E;
+  --color-surface-container-lowest: #05060A;
+  --color-surface-container-low: #12151E;
+  --color-surface-container: #1A1E2E;
+  --color-surface-container-high: #222738;
+  --color-surface-container-highest: #2E354B;
 
-  --color-primary: #2563EB;
-  --color-secondary: #38BDF8;
-  --color-accent: #2563EB;
+  --color-primary: #00F5D4;
+  --color-secondary: #3B82F6;
+  --color-accent: #00F5D4;
 
-  --color-danger: #EF4444;
-  --color-error: #EF4444;
-  --color-warning: #F59E0B;
-  --color-success: #22C55E;
+  --color-danger: #FF2A6D;
+  --color-error: #FF2A6D;
+  --color-warning: #FFB800;
+  --color-success: #00F5D4;
 
   --color-on-surface: #F8FAFC;
-  --color-on-surface-variant: #94A3B8;
-  --color-outline-variant: #334155;
+  --color-on-surface-variant: #8E9BAE;
+  --color-outline-variant: #222738;
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-heading: 'Inter', system-ui, sans-serif;
@@ -31,7 +31,7 @@
 @layer base {
   body {
     margin: 0;
-    background-color: #0F172A;
+    background-color: #090A0F;
     color: #F8FAFC;
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -47,6 +47,7 @@
     box-sizing: border-box;
   }
 }
+
 
 
 @layer components {

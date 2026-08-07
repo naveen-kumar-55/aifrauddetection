@@ -17,21 +17,22 @@ const navItems = [
 export default function Sidebar({ collapsed, onToggle }) {
   return (
     <aside 
-      className={`fixed top-0 left-0 bottom-0 z-50 bg-[#1c1b1b] border-r border-[#444748]/30 flex flex-col transition-all duration-300 ${
+      className={`fixed top-0 left-0 bottom-0 z-50 bg-[#12151e] border-r border-[#222738] flex flex-col transition-all duration-300 ${
         collapsed ? 'w-16' : 'w-72'
       }`}
     >
       {/* Brand Header */}
       <div className="p-6 flex items-center gap-3 mb-2 shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-[#ffffff] text-[#141313] flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
-          <Zap size={18} className="fill-[#141313] stroke-none" />
+        <div className="w-8 h-8 rounded-lg bg-[#00f5d4] text-[#090a0f] flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+          <Zap size={18} className="fill-[#090a0f] stroke-none" />
         </div>
         {!collapsed && (
-          <span className="font-semibold text-lg tracking-tight text-[#ffffff] font-heading">
+          <span className="font-bold text-lg tracking-tight text-[#f8fafc] font-heading">
             FraudLens AI
           </span>
         )}
       </div>
+
 
       {/* Navigation Links */}
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto">

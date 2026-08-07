@@ -3,20 +3,21 @@ import { Search, Filter, Calendar, Download, Bell } from 'lucide-react';
 
 export default function Navbar({ collapsed }) {
   return (
-    <header className={`fixed top-0 right-0 h-16 bg-[#141313]/90 backdrop-blur-md z-40 border-b border-[#444748]/20 flex items-center justify-between px-6 transition-all duration-300 ${
+    <header className={`fixed top-0 right-0 h-16 bg-[#12151e]/90 backdrop-blur-md z-40 border-b border-[#222738] flex items-center justify-between px-6 transition-all duration-300 ${
       collapsed ? 'left-16' : 'left-72'
     }`}>
       {/* Search Input */}
       <div className="flex items-center flex-1 max-w-xl">
         <div className="relative w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#c4c7c8]" size={16} />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8e9bae]" size={16} />
           <input
             type="text"
             placeholder="Search network, nodes, or transactions..."
-            className="w-full bg-[#2a2a2a] text-[#e5e2e1] text-sm py-2 pl-10 pr-4 rounded-full border border-transparent focus:border-[#8e9192] focus:outline-none transition-all placeholder:text-[#c4c7c8]"
+            className="w-full bg-[#1a1e2e] text-[#f8fafc] text-sm py-2 pl-10 pr-4 rounded-full border border-[#2e354b] focus:border-[#00f5d4] focus:outline-none transition-all placeholder:text-[#8e9bae]"
           />
         </div>
       </div>
+
 
       {/* Action Buttons */}
       <div className="flex items-center gap-3 ml-6">
