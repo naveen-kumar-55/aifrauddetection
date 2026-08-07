@@ -1,20 +1,18 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
-  LayoutDashboard, Network, Users, Brain, AlertTriangle, RotateCcw, Activity, FileText, Settings, ChevronLeft, ChevronRight, Zap
+  LayoutDashboard, Network, Brain, Activity, FileText, Settings, ChevronLeft, ChevronRight, Zap
 } from 'lucide-react';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/network', label: 'Transaction Network', icon: Network },
-  { path: '/communities', label: 'Community Detection', icon: Users },
-  { path: '/investigation', label: 'Risk Intelligence', icon: Brain },
-  { path: '/high-risk', label: 'High-Risk Accounts', icon: AlertTriangle },
-  { path: '/cycles', label: 'Cycle Detection', icon: RotateCcw },
-  { path: '/intervention', label: 'Intervention Simulator', icon: Activity },
+  { path: '/network', label: 'Network Explorer', icon: Network },
+  { path: '/investigation', label: 'AI Investigation', icon: Brain },
+  { path: '/intervention', label: 'Intervention', icon: Activity },
   { path: '/reports', label: 'Reports', icon: FileText },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
+
 
 export default function Sidebar({ collapsed, onToggle }) {
   return (
