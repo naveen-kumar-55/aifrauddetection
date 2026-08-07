@@ -9,6 +9,7 @@ import Communities from './pages/Communities';
 import CycleDetection from './pages/CycleDetection';
 import RiskIntelligence from './pages/RiskIntelligence';
 import HighRiskAccounts from './pages/HighRiskAccounts';
+import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 
 export default function App() {
@@ -30,7 +31,7 @@ export default function App() {
           <Route path="cycle-detection" element={<CycleDetection />} />
           <Route path="intervention" element={<Investigation />} />
           <Route path="intervention-simulator" element={<Investigation />} />
-          <Route path="reports" element={<Analytics />} />
+          <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Dashboard />} />
         </Route>
@@ -38,4 +39,5 @@ export default function App() {
     </BrowserRouter>
   );
 }
+
 
