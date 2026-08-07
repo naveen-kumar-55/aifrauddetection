@@ -30,7 +30,10 @@ export const fetchSimulateIntervention = (accountId) => api.get(`/simulate-inter
 
 export const fetchHighRiskAccounts = () => api.get('/high-risk-accounts').then(r => r.data);
 
+export const fetchFraudIntelligence = () => api.get('/fraud-intelligence').then(r => r.data);
+
 export const fetchFraudTrend = () => api.get('/fraud-trend').then(r => r.data);
+
 
 export const fetchTransactionTypes = () => api.get('/transaction-types').then(r => r.data);
 

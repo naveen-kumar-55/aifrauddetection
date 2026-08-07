@@ -247,13 +247,34 @@ def simulate_intervention(account_id):
     else:
         reduction = min(95.0, max(5.0, ips * 0.85))
         
+    return jsonify({
+        "account_id": account_id,
+        "simulated_reduction_percent": round(reduction, 2),
+        "message": f"Account {account_id} frozen. Isolated network links. Expected fraud contagion risk reduced by {round(reduction, 1)}%."
+    })
+
+
+@app.route("/fraud-intelligence")
+def fraud_intelligence():
+    top_fii = merged_features.sort_values(by="fii", ascending=False).head(10)[["account_id", "fii", "graph_risk_score"]].to_dict(orient="records")
+    top_bds = merged_features.sort_values(by="bds", ascending=False).head(10)[["account_id", "bds", "graph_risk_score"]].to_dict(orient="records")
+    top_nes = merged_features.sort_values(by="nes", ascending=False).head(10)[["account_id", "nes", "graph_risk_score"]].to_dict(orient="records")
+    top_ips = merged_features.sort_values(by="ips", ascending=False).head(10)[["account_id", "ips", "graph_risk_score"]].to_dict(orient="records")
+    
+    return jsonify({
+        "top_fii": top_fii,
+        "top_bds": top_bds,
+        "top_nes": top_nes,
+        "top_ips": top_ips
+    })
+
+
 @app.route("/high-risk-accounts")
 def high_risk_accounts():
     top20 = merged_features.sort_values(by="graph_risk_score", ascending=False).head(20)
     records = []
     for _, row in top20.iterrows():
         aid = row["account_id"]
-        atype = "Business" if "Business" in str(row.get("account_type", "")) else "Individual"
         records.append({
             "account_id": aid,
             "graph_risk_score": round(float(row.get("graph_risk_score", 0)) * 100, 1),
@@ -265,6 +286,7 @@ def high_risk_accounts():
             "ips": round(float(row.get("ips", 0)), 1)
         })
     return jsonify(records)
+
 
 
 @app.route("/fraud-trend")

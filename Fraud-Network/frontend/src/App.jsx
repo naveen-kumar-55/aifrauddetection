@@ -6,6 +6,9 @@ import Network from './pages/Network';
 import Analytics from './pages/Analytics';
 import Investigation from './pages/Investigation';
 import Communities from './pages/Communities';
+import CycleDetection from './pages/CycleDetection';
+import RiskIntelligence from './pages/RiskIntelligence';
+import HighRiskAccounts from './pages/HighRiskAccounts';
 import Settings from './pages/Settings';
 
 export default function App() {
@@ -18,21 +21,21 @@ export default function App() {
           <Route path="transaction-network" element={<Network />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="investigation" element={<Investigation />} />
-          <Route path="risk-intelligence" element={<Investigation />} />
+          <Route path="risk-intelligence" element={<RiskIntelligence />} />
           <Route path="communities" element={<Communities />} />
           <Route path="community-detection" element={<Communities />} />
-          <Route path="high-risk" element={<Investigation />} />
-          <Route path="high-risk-accounts" element={<Investigation />} />
-          <Route path="cycles" element={<Communities />} />
-          <Route path="cycle-detection" element={<Communities />} />
+          <Route path="high-risk" element={<HighRiskAccounts />} />
+          <Route path="high-risk-accounts" element={<HighRiskAccounts />} />
+          <Route path="cycles" element={<CycleDetection />} />
+          <Route path="cycle-detection" element={<CycleDetection />} />
           <Route path="intervention" element={<Investigation />} />
           <Route path="intervention-simulator" element={<Investigation />} />
           <Route path="reports" element={<Analytics />} />
           <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Dashboard />} />
         </Route>
-
       </Routes>
     </BrowserRouter>
   );
 }
+
