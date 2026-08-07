@@ -61,9 +61,20 @@ export default function NetworkGraph({ data, nodeLimit = 300, onNodeLimitChange,
   const [hoveredEdge, setHoveredEdge] = useState(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [layoutName, setLayoutName] = useState('cose-bilkent');
 
   const cyRef = useRef(null);
+  const posMapRef = useRef(new Map());
+
+  // Task 10: 300ms Debounce for search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
 
   const elements = useMemo(() => {
     if (!data?.nodes) return [];

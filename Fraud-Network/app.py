@@ -372,6 +372,43 @@ def graph_summary():
     return graph_data()
 
 
+@app.route("/graph/summary")
+def get_graph_meta_summary():
+    total_accs = pd.concat([transactions["sender_account_id"], transactions["receiver_account_id"]]).nunique()
+    total_txns = len(transactions)
+    num_communities = int(communities["community_id"].nunique())
+    high_risk_cnt = len(risk_scores[risk_scores["graph_risk_score"] > 0.5]) if "graph_risk_score" in risk_scores.columns else len(risk_scores)
+    return jsonify({
+        "total_nodes": total_accs,
+        "total_edges": total_txns,
+        "communities_count": num_communities,
+        "high_risk_count": high_risk_cnt
+    })
+
+
+@app.route("/graph/high-risk")
+def get_graph_high_risk():
+    return graph_data()
+
+
+@app.route("/graph/community/<int:cid>")
+def get_graph_community(cid):
+    return graph_data()
+
+
+@app.route("/graph/neighbours/<account_id>")
+def get_graph_neighbours(account_id):
+    acc_txns = transactions[(transactions["sender_account_id"] == account_id) | (transactions["receiver_account_id"] == account_id)]
+    neighbours = set(acc_txns["sender_account_id"]).union(set(acc_txns["receiver_account_id"]))
+    neighbours.discard(account_id)
+    return jsonify({
+        "account_id": account_id,
+        "neighbours": list(neighbours),
+        "count": len(neighbours)
+    })
+
+
+
 @app.route("/investigation/<account_id>")
 def investigation_report(account_id):
     return ai_investigation(account_id)
